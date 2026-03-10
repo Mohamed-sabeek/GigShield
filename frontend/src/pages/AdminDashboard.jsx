@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { LogOut, Users, FileText, CheckCircle, MapPin, AlertTriangle, IndianRupee, CloudRain, ShieldAlert } from 'lucide-react';
+import { LogOut, Users, FileText, CheckCircle, MapPin, AlertTriangle, IndianRupee, CloudRain, ShieldAlert, LayoutDashboard, Shield, History } from 'lucide-react';
 
 export default function AdminDashboard() {
     const { logout } = useContext(AuthContext);
@@ -61,41 +61,96 @@ export default function AdminDashboard() {
 
     const [activeTab, setActiveTab] = useState('stats');
 
-    if (loading) return <div className="p-8 text-center text-slate-500">Loading metrics...</div>;
-    if (!stats) return <div className="p-8 text-center text-red-500">Failed to load admin stats. Verify your admin role.</div>;
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-medium">Loading Admin Panel...</div>;
+    if (!stats) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-red-500 font-medium">Failed to load admin stats. Verify your admin role.</div>;
 
-    // Helper functions for mock data in new tabs
+    const navItems = [
+        { id: 'stats', label: 'Platform Stats', icon: <LayoutDashboard size={20} /> },
+        { id: 'workers', label: 'Workers DB', icon: <Users size={20} /> },
+        { id: 'history', label: 'Approved History', icon: <History size={20} /> },
+    ];
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-            <div className="w-full md:w-64 bg-dark text-white p-6 flex flex-col justify-between hidden md:flex min-h-screen sticky top-0 overflow-y-auto">
-                <div>
-                    <h1 className="text-2xl font-bold text-cyan-400 mb-10 flex items-center gap-2">
-                        GigShield Admin
-                    </h1>
-                    <nav className="space-y-4">
-                        <button onClick={() => setActiveTab('stats')} className={`block w-full text-left py-2 px-4 rounded-lg font-medium transition ${activeTab === 'stats' ? 'bg-primary text-white' : 'hover:bg-slate-800 text-slate-300'}`}>Platform Stats</button>
-                        <button onClick={() => setActiveTab('workers')} className={`block w-full text-left py-2 px-4 rounded-lg font-medium transition ${activeTab === 'workers' ? 'bg-primary text-white' : 'hover:bg-slate-800 text-slate-300'}`}>Workers DB</button>
-                        <button onClick={() => setActiveTab('history')} className={`block w-full text-left py-2 px-4 rounded-lg font-medium transition ${activeTab === 'history' ? 'bg-primary text-white' : 'hover:bg-slate-800 text-slate-300'}`}>Approved History</button>
+            {/* Desktop Sidebar */}
+            <div className="w-full md:w-72 bg-slate-900 text-white flex-col hidden md:flex sticky top-0 h-screen border-r border-slate-800">
+                <div className="p-8">
+                    <div className="flex items-center gap-3 mb-10">
+                        <div className="w-10 h-10 bg-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                            <Shield className="text-white" size={20} />
+                        </div>
+                        <span className="text-xl font-black tracking-tighter">GigShield<span className="text-cyan-500 italic">.</span></span>
+                    </div>
+
+                    <nav className="space-y-2">
+                        {navItems.map((item) => (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveTab(item.id)}
+                                className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold transition-all duration-300 ${activeTab === item.id
+                                    ? 'bg-cyan-500 text-white shadow-xl shadow-cyan-500/30 translate-x-2'
+                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                    }`}
+                            >
+                                {item.icon}
+                                {item.label}
+                            </button>
+                        ))}
                     </nav>
                 </div>
-                <button onClick={logout} className="flex items-center gap-2 text-slate-400 hover:text-white transition mt-8">
-                    <LogOut size={20} /> Logout
-                </button>
+
+                <div className="mt-auto p-6 border-t border-slate-800 bg-slate-900/50">
+                    <div className="bg-slate-800/50 rounded-3xl p-5 mb-4 border border-slate-700/50">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center font-black text-white p-[2px]">
+                                <div className="w-full h-full bg-slate-800 rounded-full flex items-center justify-center text-xs">
+                                    AD
+                                </div>
+                            </div>
+                            <div className="overflow-hidden">
+                                <div className="text-sm font-black truncate text-cyan-400">Admin Control</div>
+                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">Root Access</div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={logout}
+                            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-red-400/10 text-red-400 hover:bg-red-400 hover:text-white transition-all text-xs font-black uppercase tracking-widest"
+                        >
+                            <LogOut size={14} /> Logout
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div className="flex-1 p-6 md:p-10 w-full max-w-7xl mx-auto">
                 {/* Mobile Header */}
-                <div className="md:hidden flex justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm">
-                    <h1 className="text-xl font-bold text-cyan-500">GigShield Admin</h1>
-                    <button onClick={logout}><LogOut className="text-slate-600" /></button>
+                <div className="md:hidden flex justify-between items-center mb-8 bg-white/70 backdrop-blur-xl p-5 rounded-3xl border border-slate-100 shadow-sm sticky top-4 z-50">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                            <Shield className="text-white" size={16} />
+                        </div>
+                        <span className="font-black text-slate-900 tracking-tighter">GigShield<span className="text-cyan-500">.</span></span>
+                    </div>
+                    <button onClick={logout} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                        <LogOut size={20} />
+                    </button>
                 </div>
 
                 {/* Mobile Navigation */}
-                <div className="md:hidden flex gap-2 mb-6 overflow-x-auto pb-2">
-                    <button onClick={() => setActiveTab('stats')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition ${activeTab === 'stats' ? 'bg-slate-800 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>Stats</button>
-                    <button onClick={() => setActiveTab('workers')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition ${activeTab === 'workers' ? 'bg-slate-800 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>Workers</button>
-                    <button onClick={() => setActiveTab('history')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition ${activeTab === 'history' ? 'bg-slate-800 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>History</button>
+                <div className="md:hidden flex gap-3 mb-10 p-1 bg-slate-100 rounded-[20px]">
+                    {navItems.map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => setActiveTab(item.id)}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${activeTab === item.id
+                                ? 'bg-white text-cyan-500 shadow-md'
+                                : 'text-slate-500 hover:text-slate-800'
+                                }`}
+                        >
+                            {item.icon}
+                            {item.id === 'stats' ? 'Stats' : item.id === 'workers' ? 'Workers' : 'History'}
+                        </button>
+                    ))}
                 </div>
 
                 {activeTab === 'stats' && (

@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import WorkerDashboard from './pages/WorkerDashboard';
@@ -34,9 +35,9 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={token ? (user?.role === 'admin' ? '/admin' : '/dashboard') : '/login'} replace />} />
-      <Route path="/login" element={!token ? <Login /> : <Navigate to="/" replace />} />
-      <Route path="/signup" element={!token ? <Signup /> : <Navigate to="/" replace />} />
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={!token ? <Login /> : <Navigate to={user?.role === 'admin' ? '/admin' : '/dashboard'} replace />} />
+      <Route path="/signup" element={!token ? <Signup /> : <Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<ProtectedRoute roleRequired="worker"><WorkerDashboard /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute roleRequired="admin"><AdminDashboard /></ProtectedRoute>} />
     </Routes>
