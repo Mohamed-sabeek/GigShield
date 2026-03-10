@@ -14,6 +14,6 @@ const PolicySchema = new mongoose.Schema({
         type: Date,
         default: () => new Date(+new Date() + 7 * 24 * 60 * 60 * 1000) // 1 week
     }
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('Policy', PolicySchema);

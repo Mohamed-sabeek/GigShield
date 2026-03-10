@@ -9,6 +9,6 @@ const UserSchema = new mongoose.Schema({
     city: { type: String },
     workingArea: { type: String },
     averageDailyIncome: { type: Number, default: 0 },
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);

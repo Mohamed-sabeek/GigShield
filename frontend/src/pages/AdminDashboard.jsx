@@ -417,7 +417,7 @@ export default function AdminDashboard() {
                                                             {h.status}
                                                         </span>
                                                     </td>
-                                                    <td className="py-4 px-6 text-slate-500 text-sm">{new Date(h.updatedAt).toLocaleDateString()}</td>
+                                                    <td className="py-4 px-6 text-slate-500 text-sm">{new Date(h.updatedAt || h.createdAt).toLocaleDateString()}</td>
                                                 </tr>
                                             ))
                                         )}

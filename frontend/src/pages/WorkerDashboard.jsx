@@ -201,7 +201,7 @@ export default function WorkerDashboard() {
                                 </div>
                                 <h3 className="text-slate-500 text-xs font-bold mb-1 uppercase tracking-wider">Active Policy</h3>
                                 <div className={`text-xl font-bold mt-1 ${activePolicy ? 'text-primary' : 'text-slate-400'}`}>
-                                    {activePolicy ? 'Fully Protected' : 'No Active Plan'}
+                                    {activePolicy ? `Active until ${new Date(activePolicy.endDate).toLocaleDateString()}` : 'No Active Plan'}
                                 </div>
                             </div>
 
@@ -288,7 +288,7 @@ export default function WorkerDashboard() {
                                         {activePolicy.claimUsed ? (
                                             <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg text-center">
                                                 <p className="text-orange-800 font-bold mb-1">Claim limit reached.</p>
-                                                <p className="text-sm text-orange-600">Next claim available after policy renewal.</p>
+                                                <p className="text-sm text-orange-600">Next claim available after renewal on {new Date(activePolicy.endDate).toLocaleDateString()}.</p>
                                             </div>
                                         ) : (
                                             <>
@@ -339,7 +339,7 @@ export default function WorkerDashboard() {
                                                 </span>
                                             </div>
                                             <div className="flex justify-between items-center text-sm">
-                                                <span className="text-slate-500 font-medium">{new Date(claim.createdAt).toLocaleString()}</span>
+                                                <span className="text-slate-500 font-medium">{new Date(claim.updatedAt || claim.createdAt).toLocaleString()}</span>
                                                 <span className="font-black text-slate-800 text-lg">Payout: ₹{claim.payoutAmount}</span>
                                             </div>
                                             {claim.status === 'Approved' && (

@@ -32,17 +32,17 @@ export default function Landing() {
                     </div>
 
                     <div className="max-w-7xl mx-auto text-center relative">
-                        <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100 mb-10 animate-fade-in shadow-sm">
+                        <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-gradient-to-r from-green-50 to-blue-50 border border-green-100 mb-10 animate-fade-in shadow-sm">
                             <div className="p-1 bg-white rounded-full shadow-sm">
-                                <Sparkles size={14} className="text-primary" />
+                                <span className="w-2 h-2 rounded-full bg-green-500 block animate-pulse"></span>
                             </div>
-                            <span className="text-[10px] md:text-xs font-black text-primary uppercase tracking-[0.2em]">Next-Gen Parametric Insurance</span>
+                            <span className="text-[10px] md:text-xs font-black text-green-700 uppercase tracking-[0.2em]">Tamil Nadu Live Protection Beta</span>
                         </div>
 
                         <h1 className="text-5xl md:text-8xl font-black text-slate-900 tracking-tighter leading-[0.95] mb-10">
-                            The Smartest Way <br />
+                            Protect Your <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-600 to-cyan-500 relative">
-                                To Insure Your Gig
+                                Daily Wages
                                 <svg className="absolute -bottom-2 left-0 w-full h-3 text-cyan-200 -z-10" viewBox="0 0 100 10" preserveAspectRatio="none">
                                     <path d="M0 5 Q 25 0 50 5 T 100 5 L 100 10 L 0 10 Z" fill="currentColor" />
                                 </svg>
@@ -50,43 +50,44 @@ export default function Landing() {
                         </h1>
 
                         <p className="max-w-2xl mx-auto text-lg md:text-2xl text-slate-500 font-medium leading-relaxed mb-16 px-4">
-                            GigShield uses real-time AI and parametric sensors to protect your livelihood.
-                            <span className="text-slate-900 font-bold"> No claims, just instant payouts.</span>
+                            Shielding Chennai & Coimbatore gig workers from
+                            <span className="text-slate-900 font-bold italic"> Monsoon floods & Heat waves. </span>
+                            No claims, just instant payouts to your UPI.
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-8 px-4">
                             <Link to={token ? dashboardLink : "/signup"} className="group w-full sm:w-auto px-10 py-5 bg-primary text-white text-xl font-black rounded-[24px] hover:bg-blue-700 hover:scale-105 transition-all shadow-2xl shadow-primary/40 flex items-center justify-center gap-3 active:scale-95">
-                                {token ? 'Go to Dashboard' : 'Get Protected Now'} <ArrowRight size={24} className="group-hover:translate-x-1 transition-transform" />
+                                {token ? 'Go to Dashboard' : 'Shield Your Earnings Now'} <ArrowRight size={24} className="group-hover:translate-x-1 transition-transform" />
                             </Link>
                             <div className="flex -space-x-3 items-center">
                                 {[1, 2, 3, 4].map(i => (
                                     <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm">
-                                        <img src={`https://i.pravatar.cc/150?u=${i + 10}`} alt="User" className="w-full h-full object-cover" />
+                                        <img src={`https://i.pravatar.cc/150?u=${i + 20}`} alt="User" className="w-full h-full object-cover" />
                                     </div>
                                 ))}
                                 <div className="pl-6 text-slate-500 font-black text-sm">
-                                    <span className="text-slate-900">12k+</span> Active Workers
+                                    <span className="text-slate-900">8.5k+</span> TN Workers Shielded
                                 </div>
                             </div>
                         </div>
 
                         {/* Visual Separator / Stats Card */}
-                        <div className="mt-32 relative">
+                        <div className="mt-32 relative text-left">
                             <div className="absolute inset-0 bg-slate-900/5 blur-[80px] -z-10"></div>
-                            <div className="bg-white/80 backdrop-blur-2xl border border-white rounded-[48px] p-12 shadow-2xl overflow-hidden grid grid-cols-2 lg:grid-cols-4 gap-12 group">
+                            <div className="bg-white/90 backdrop-blur-2xl border border-white rounded-[48px] p-10 md:p-12 shadow-2xl overflow-hidden grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 group">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                                 {[
-                                    { label: 'Platform Coverage', value: 'Global', icon: <Globe size={20} className="text-cyan-500" /> },
-                                    { label: 'Instant Payout', value: '2 Hours', icon: <Zap size={20} className="text-amber-500" /> },
-                                    { label: 'Trust Score', value: '4.9/5', icon: <TrendingUp size={20} className="text-green-500" /> },
-                                    { label: 'Total Protected', value: '₹5.2M', icon: <Wallet size={20} className="text-primary" /> }
+                                    { label: 'TN Districts Active', value: '12+', icon: <Globe size={20} className="text-cyan-500" /> },
+                                    { label: 'Avg Payout Time', value: '45 Mins', icon: <Zap size={20} className="text-amber-500" /> },
+                                    { label: 'Weather Nodes', value: '150+', icon: <Cpu size={20} className="text-green-500" /> },
+                                    { label: 'Shielded Payouts', value: '₹2.8M+', icon: <Wallet size={20} className="text-primary" /> }
                                 ].map((stat, i) => (
                                     <div key={i} className="relative z-10 flex flex-col items-center group-hover:scale-105 transition-transform duration-500">
                                         <div className="mb-4 p-3 bg-slate-50 rounded-2xl group-hover:bg-white group-hover:shadow-md transition-all">
                                             {stat.icon}
                                         </div>
                                         <div className="text-3xl font-black text-slate-900 mb-1">{stat.value}</div>
-                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</div>
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{stat.label}</div>
                                     </div>
                                 ))}
                             </div>
@@ -94,39 +95,102 @@ export default function Landing() {
                     </div>
                 </section>
 
-                {/* Features Grid - Redesigned */}
+                {/* The Problem Section */}
+                <section id="problem" className="py-24 bg-white relative overflow-hidden">
+                    <div className="max-w-7xl mx-auto px-6">
+                        <div className="max-w-3xl mb-16 px-4">
+                            <h2 className="text-4xl md:text-6xl font-black text-slate-900 mb-8 tracking-tighter leading-none">
+                                The Problem Gig Workers Face
+                            </h2>
+                            <div className="space-y-6 text-lg md:text-xl text-slate-600 font-medium leading-relaxed">
+                                <p>
+                                    Tamil Nadu has a rapidly growing gig economy with several lakh workers in cities like
+                                    <span className="text-slate-900 font-bold"> Chennai, Coimbatore, and Madurai. </span>
+                                    Most delivery partners rely entirely on task-based earnings.
+                                </p>
+                                <p>
+                                    When environmental disruptions such as
+                                    <span className="text-primary font-bold italic"> heavy rain, floods, or extreme heat </span>
+                                    occur, gig workers are unable to work and lose their daily income.
+                                </p>
+                                <p>
+                                    Since gig workers are not classified as traditional employees, they
+                                    <span className="text-slate-900 font-bold underline decoration-primary/30 underline-offset-4"> lack financial protection </span>
+                                    during these disruptions.
+                                </p>
+                                <p className="text-slate-900 font-bold bg-slate-50 p-4 rounded-2xl border-l-4 border-primary">
+                                    GigShield aims to solve this problem by offering affordable weekly insurance that protects workers from income loss caused by environmental disruptions.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4">
+                            {[
+                                {
+                                    title: "Gig Workforce",
+                                    value: "5+ Lakh Workers",
+                                    desc: "Estimated gig workers across Tamil Nadu rely on platform work.",
+                                    icon: <Globe className="text-blue-500" size={28} />
+                                },
+                                {
+                                    title: "Income Model",
+                                    value: "Task-Based Earnings",
+                                    desc: "Paid per delivery or ride with no guaranteed monthly salary.",
+                                    icon: <TrendingUp className="text-amber-500" size={28} />
+                                },
+                                {
+                                    title: "Disruption Risk",
+                                    value: "Weather & Heat",
+                                    desc: "Floods, monsoons, and heatwaves frequently disrupt delivery work.",
+                                    icon: <ShieldAlert className="text-red-500" size={28} />
+                                }
+                            ].map((item, i) => (
+                                <div key={i} className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 group">
+                                    <div className="mb-6 p-4 bg-slate-50 rounded-2xl w-fit group-hover:bg-white group-hover:shadow-md transition-all">
+                                        {item.icon}
+                                    </div>
+                                    <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">{item.title}</div>
+                                    <div className="text-3xl font-black text-slate-900 mb-4 tracking-tight">{item.value}</div>
+                                    <p className="text-slate-500 font-medium leading-relaxed">{item.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* Features Grid - Localized for TN */}
                 <section id="features" className="py-32 bg-slate-50/50 scroll-mt-20">
                     <div className="max-w-7xl mx-auto px-6">
                         <div className="flex flex-col lg:flex-row justify-between items-end gap-10 mb-20 px-4">
                             <div className="max-w-2xl">
-                                <h2 className="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tighter">Why GigShield?</h2>
-                                <p className="text-xl text-slate-500 font-medium leading-relaxed">We built a system that understands the unpredictability of your work. No more losing money to the weather.</p>
+                                <h2 className="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tighter">TN-Specific Protection</h2>
+                                <p className="text-xl text-slate-500 font-medium leading-relaxed">Tailored for the unique challenges of working in Tamil Nadu. We shield you where others don't.</p>
                             </div>
                             <div className="flex items-center gap-4 py-4 px-8 bg-white rounded-full border border-slate-100 shadow-sm">
-                                <Cpu size={24} className="text-primary animate-pulse" />
-                                <span className="text-sm font-black text-slate-900">AI Verified Payouts</span>
+                                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+                                <span className="text-sm font-black text-slate-900">150+ Weather Nodes in TN</span>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {[
                                 {
-                                    icon: <Zap className="text-amber-500" size={32} />,
-                                    title: 'Instant Triggers',
-                                    color: 'bg-amber-50',
-                                    desc: 'No manual claim forms. When a disruption is detected via our sensor network, your payout is initiated immediately.'
-                                },
-                                {
-                                    icon: <Globe className="text-cyan-500" size={32} />,
-                                    title: 'AI Risk Mapping',
-                                    color: 'bg-cyan-50',
-                                    desc: 'Our neural network precisely maps risk zones in your city to provide the lowest possible weekly premiums.'
-                                },
-                                {
-                                    icon: <Clock className="text-primary" size={32} />,
-                                    title: 'Micro-Policies',
+                                    icon: <ShieldAlert className="text-blue-600" size={32} />,
+                                    title: 'Monsoon Flooding Shield',
                                     color: 'bg-blue-50',
-                                    desc: 'Affordable, flexible insurance that fits your gig schedule. Pay as you earn, week by week, tailored to YOUR area.'
+                                    desc: 'Chennai rains can be unpredictable. When rainfall exceeds 50mm in your working zone, your daily wage shield triggers automatically.'
+                                },
+                                {
+                                    icon: <Zap className="text-amber-500" size={32} />,
+                                    title: 'Agni Nakshatram Heat Shield',
+                                    color: 'bg-amber-50',
+                                    desc: 'Protecting you from extreme heat waves. Payouts are initiated when temperatures cross 42°C, ensuring your health comes first.'
+                                },
+                                {
+                                    icon: <ShieldCheck className="text-green-600" size={32} />,
+                                    title: 'TNGWWB Complement',
+                                    color: 'bg-green-50',
+                                    desc: 'GigShield works alongside the Tamil Nadu Gig Workers Welfare Board benefits, providing an extra layer of instant financial security.'
                                 }
                             ].map((feat, i) => (
                                 <div key={i} className="p-12 bg-white rounded-[40px] border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
@@ -153,9 +217,9 @@ export default function Landing() {
                                 <h2 className="text-5xl md:text-7xl font-black text-slate-900 mb-10 tracking-tighter leading-none">Simplicity <br />In 3 Steps</h2>
                                 <div className="space-y-12">
                                     {[
-                                        { step: '01', title: 'Smart Onboarding', desc: 'Sign up and connect your delivery profile. Our AI starts analyzing your city patterns immediately.' },
-                                        { step: '02', title: 'Activate Protection', desc: 'Secure your weekly window with a small micro-premium, often less than your daily lunch cost.' },
-                                        { step: '03', title: 'Automated Shield', desc: 'Work with peace of mind. If our sensors detect a disruption, money lands in your wallet automatically.' }
+                                        { step: '01', title: 'Connect Your Profile', desc: 'Securely link your delivery or ride-sharing profile using your Aadhar or Registered Worker ID.' },
+                                        { step: '02', title: 'Activate TN Shield', desc: 'Choose your protection window. Premiums are adjusted based on real-time TN weather forecasts.' },
+                                        { step: '03', title: 'Instant UPI Payout', desc: 'If our sensors detect a monsoon or heat trigger, your payout lands in your UPI wallet in minutes.' }
                                     ].map((s, i) => (
                                         <div key={i} className="flex gap-8 group">
                                             <div className="text-5xl font-black text-slate-100 group-hover:text-primary/20 transition-colors duration-500 leading-none">{s.step}</div>
@@ -176,8 +240,8 @@ export default function Landing() {
                                         <div className="p-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-[32px] mb-10 animate-pulse shadow-3xl shadow-cyan-400/40 transform -rotate-12">
                                             <ShieldCheck size={72} className="text-white" />
                                         </div>
-                                        <h3 className="text-4xl font-black mb-6 tracking-tighter">AI Parametric <br />Sensor Node</h3>
-                                        <p className="text-slate-400 font-bold max-w-xs uppercase tracking-[0.2em] text-[10px] leading-widest">Tamil Nadu Real-Time Risk Monitoring Active</p>
+                                        <h3 className="text-4xl font-black mb-6 tracking-tighter">AI Parametric <br />TN Node</h3>
+                                        <p className="text-slate-400 font-bold max-w-xs uppercase tracking-[0.2em] text-[10px] leading-widest">Tamil Nadu Real-Time Monitoring: Chennai Core</p>
 
                                         {/* Dynamic UI Pulse */}
                                         <div className="absolute top-10 right-10 flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/10 backdrop-blur-md">
@@ -194,7 +258,7 @@ export default function Landing() {
                                             </div>
                                             <div className="text-center">
                                                 <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Status</div>
-                                                <div className="text-xl font-black text-slate-900 tracking-tight">Active Shield</div>
+                                                <div className="text-xl font-black text-slate-900 tracking-tight">Active TN Shield</div>
                                             </div>
                                         </div>
                                     </div>
@@ -211,14 +275,14 @@ export default function Landing() {
                             {/* Texture Overlay */}
                             <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
 
-                            <h2 className="text-5xl md:text-8xl font-black text-white mb-10 tracking-tighter leading-none relative z-10">Ready to Shield <br />Your Future?</h2>
+                            <h2 className="text-5xl md:text-8xl font-black text-white mb-10 tracking-tighter leading-none relative z-10">Shield Your <br /> Daily Wages</h2>
                             <p className="text-blue-100 text-xl md:text-2xl font-medium max-w-2xl mb-16 relative z-10 opacity-90 leading-relaxed">
-                                Don't let a rainy day steal your wages. Join the smartest insurance community in the world.
+                                Don't let the Chennai heat or monsoons steal your wages. Join 8,500+ TN workers today.
                             </p>
 
                             <div className="flex flex-col sm:flex-row gap-6 relative z-10 w-full justify-center px-4">
                                 <Link to="/signup" className="w-full sm:w-auto px-12 py-6 bg-white text-primary font-black rounded-[32px] hover:bg-slate-50 transition transform hover:scale-105 shadow-2xl active:scale-95 text-xl flex items-center justify-center gap-3">
-                                    Create Free Account <ArrowRight size={24} />
+                                    Start Your TN Shield <ArrowRight size={24} />
                                 </Link>
                                 <Link to="/login" className="w-full sm:w-auto px-12 py-6 bg-primary/20 border-2 border-white/20 backdrop-blur-md text-white font-black rounded-[32px] hover:bg-white/10 transition active:scale-95 text-xl">
                                     Admin Login
@@ -237,17 +301,17 @@ export default function Landing() {
                                 <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-xl shadow-primary/20">
                                     <Shield className="text-white" size={24} />
                                 </div>
-                                <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">GigShield<span className="text-primary">.</span></span>
+                                <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">GigShield<span className="text-primary">.</span>TN</span>
                             </div>
                             <p className="text-slate-500 font-medium leading-relaxed">
-                                Democratizing financial security for the backbone of modern cities. AI-powered parametric protection for every worker.
+                                Protecting the backbone of Tamil Nadu's cities. AI-powered parametric coverage for delivery partners, ride-hailing drivers, and more.
                             </p>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-16">
                             <div>
                                 <h5 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6">Product</h5>
                                 <ul className="space-y-4 text-slate-500 font-bold text-sm">
-                                    <li><a href="#features" className="hover:text-primary transition">Features</a></li>
+                                    <li><a href="#features" className="hover:text-primary transition">TN Features</a></li>
                                     <li><a href="#how-it-works" className="hover:text-primary transition">How it works</a></li>
                                     <li><a href="#pricing" className="hover:text-primary transition">Pricing</a></li>
                                 </ul>
@@ -255,22 +319,22 @@ export default function Landing() {
                             <div>
                                 <h5 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6">Support</h5>
                                 <ul className="space-y-4 text-slate-500 font-bold text-sm">
-                                    <li><a href="#" className="hover:text-primary transition">Help Center</a></li>
+                                    <li><a href="#" className="hover:text-primary transition">TN Help Center</a></li>
                                     <li><a href="#" className="hover:text-primary transition">Contact Us</a></li>
-                                    <li><a href="#" className="hover:text-primary transition">Privacy Policy</a></li>
+                                    <li><a href="#" className="hover:text-primary transition">TNGWWB Info</a></li>
                                 </ul>
                             </div>
                             <div>
                                 <h5 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6">Coverage</h5>
                                 <div className="flex items-center gap-2 group cursor-default">
                                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                    <span className="text-sm font-black text-slate-900 group-hover:text-primary transition">Tamil Nadu Beta</span>
+                                    <span className="text-sm font-black text-slate-900 group-hover:text-primary transition">Tamil Nadu Live</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div className="pt-12 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
-                        <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em]">© 2026 AI-Powered Parametric Insurance Prototype</p>
+                        <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em]">© 2026 GigShield TN - Parametric Insurance Prototype</p>
                     </div>
                 </div>
             </footer>
