@@ -41,15 +41,17 @@ if (!MONGO_URI) {
 }
 
 // Connect DB and start server
-mongoose.connect(MONGO_URI)
-  .then(() => {
-    console.log('✅ Connected to MongoDB');
+mongoose.connect(MONGO_URI, {
+  serverSelectionTimeoutMS: 5000 // fail fast
+})
+.then(() => {
+  console.log('✅ Connected to MongoDB');
 
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
-  })
-  .catch(err => {
-    console.error('❌ Database connection error:', err);
-    process.exit(1);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on port ${PORT}`);
   });
+})
+.catch(err => {
+  console.error('❌ Database connection error:', err.message);
+  process.exit(1);
+});
