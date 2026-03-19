@@ -11,8 +11,12 @@ const adminRoutes = require('./routes/admin');
 
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
+
+// Debug (IMPORTANT - remove later if needed)
+console.log("ENV CHECK:", process.env.MONGO_URI ? "FOUND ✅" : "MISSING ❌");
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -21,20 +25,31 @@ app.use('/api/policy', policyRoutes);
 app.use('/api/claim', claimRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Database Connection
+// Root route (for testing)
+app.get('/', (req, res) => {
+  res.send("GigShield API running 🚀");
+});
+
+// Config
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 
+// Safety check
 if (!MONGO_URI) {
-  console.error("MONGO_URI is missing ❌");
+  console.error("❌ MONGO_URI is missing");
   process.exit(1);
 }
 
+// Connect DB and start server
 mongoose.connect(MONGO_URI)
   .then(() => {
-    console.log('Connected to MongoDB');
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    console.log('✅ Connected to MongoDB');
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
   })
   .catch(err => {
-    console.error('Database connection error:', err);
+    console.error('❌ Database connection error:', err);
+    process.exit(1);
   });
