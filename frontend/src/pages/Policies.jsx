@@ -3,6 +3,7 @@ import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { Shield, ShieldCheck, CheckCircle, AlertCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function Policies() {
     const { user } = useContext(AuthContext);
@@ -15,8 +16,8 @@ export default function Policies() {
     const fetchData = async () => {
         try {
             const [profRes, polRes] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/worker/profile`),
-                axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/policy/active`)
+                axios.get(`${API}/api/worker/profile`),
+                axios.get(`${API}/api/policy/active`)
             ]);
             setProfile(profRes.data.profile);
             setRecommendedPolicy(profRes.data.recommendedPolicy);
@@ -34,7 +35,7 @@ export default function Policies() {
 
     const activatePolicy = async () => {
         try {
-            await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/policy/create`, recommendedPolicy);
+            await axios.post(`${API}/api/policy/create`, recommendedPolicy);
             setNotification({ msg: 'Policy activated successfully!', type: 'success' });
             fetchData();
         } catch (err) {

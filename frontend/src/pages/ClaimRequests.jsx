@@ -3,6 +3,7 @@ import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { CheckCircle, LogOut, Shield, Info } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function ClaimRequests() {
     const { logout } = useContext(AuthContext);
@@ -13,7 +14,7 @@ export default function ClaimRequests() {
 
     const fetchData = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/admin/claims`);
+            const res = await axios.get(`${API}/api/admin/claims`);
             setClaims(res.data);
         } catch (err) {
             console.error(err);
@@ -39,7 +40,7 @@ export default function ClaimRequests() {
                 const formattedDate = claimDate.toISOString().split("T")[0];
 
                 const token = localStorage.getItem('token');
-                const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/admin/verify-claim`, {
+                const res = await axios.post(`${API}/api/admin/verify-claim`, {
                     lat: coords.lat,
                     lon: coords.lon,
                     date: formattedDate,

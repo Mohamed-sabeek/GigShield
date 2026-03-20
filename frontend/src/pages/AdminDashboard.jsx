@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import AdminSidebar from '../components/AdminSidebar';
 import { AuthContext } from '../context/AuthContext';
 import { LogOut, Users, FileText, CheckCircle, MapPin, AlertTriangle, IndianRupee, CloudRain, ShieldAlert, LayoutDashboard, Shield, History } from 'lucide-react';
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function AdminDashboard() {
     const { logout } = useContext(AuthContext);
@@ -18,10 +19,10 @@ export default function AdminDashboard() {
     const fetchData = async () => {
         try {
             const [statsRes, claimsRes, workersRes, historyRes] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/admin/dashboard`),
-                axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/admin/claims`),
-                axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/admin/workers`),
-                axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/admin/claims/history`)
+                axios.get(`${API}/api/admin/dashboard`),
+                axios.get(`${API}/api/admin/claims`),
+                axios.get(`${API}/api/admin/workers`),
+                axios.get(`${API}/api/admin/claims/history`)
             ]);
             setStats(statsRes.data);
             setClaims(claimsRes.data);

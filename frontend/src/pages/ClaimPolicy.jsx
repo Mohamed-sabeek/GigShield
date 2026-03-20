@@ -4,6 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { AlertCircle, CloudLightning, CheckCircle, Shield, Calendar, MapPin, Info, Check, Edit2 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { tnDistricts } from '../utils/districts';
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function ClaimPolicy() {
     const { user } = useContext(AuthContext);
@@ -36,8 +37,8 @@ export default function ClaimPolicy() {
     const fetchData = async () => {
         try {
             const [profRes, polRes] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/worker/profile`),
-                axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/policy/active`)
+                axios.get(`${API}/api/worker/profile`),
+                axios.get(`${API}/api/policy/active`)
             ]);
             setProfile(profRes.data.profile);
             setActivePolicy(polRes.data || null);
@@ -169,7 +170,7 @@ export default function ClaimPolicy() {
                 createdAt: new Date().toISOString()
             };
 
-            const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/claim/trigger`, payload);
+            const res = await axios.post(`${API}/api/claim/trigger`, payload);
             setNotification({ msg: res.data.msg || 'Claim submitted successfully', type: 'success' });
             fetchData();
         } catch (err) {
