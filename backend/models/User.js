@@ -18,7 +18,21 @@ const UserSchema = new mongoose.Schema({
     },
     isVerified: { type: Boolean, default: false },
     otp: { type: String },
-    otpExpiry: { type: Date }
+    otpExpiry: { type: Date },
+    // Fraud Detection Fields
+    fraudScore: {
+        type: Number,
+        default: 0
+    },
+    fraudStatus: {
+        type: String,
+        enum: ["safe", "suspicious", "high_risk"],
+        default: "safe"
+    },
+    lastFraudCheck: {
+        type: Date,
+        default: Date.now
+    }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);

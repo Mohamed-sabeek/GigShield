@@ -211,6 +211,31 @@ export default function WorkerDashboard() {
                 <div className="flex-1">
                     <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-4">Worker Portal</h1>
                     
+                    {/* Fraud Status Warnings */}
+                    {profile?.fraudStatus === "high_risk" && (
+                        <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-2xl mb-8 flex items-center gap-5 text-red-800 shadow-xl shadow-red-900/5 animate-pulse">
+                            <div className="p-4 bg-red-100 rounded-2xl text-red-600">
+                                <AlertCircle size={32} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black uppercase tracking-tight">⚠ Unusual activity detected</h3>
+                                <p className="font-bold opacity-80 leading-tight">Your account is under monitoring. Please ensure you are using the system fairly and according to terms.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {profile?.fraudStatus === "suspicious" && (
+                        <div className="bg-amber-50 border-l-4 border-amber-400 p-5 rounded-2xl mb-8 flex items-center gap-5 text-amber-800 shadow-xl shadow-amber-900/5 transition-all">
+                            <div className="p-3.5 bg-amber-100 rounded-2xl text-amber-600">
+                                <ShieldAlert size={28} />
+                            </div>
+                            <div>
+                                <h3 className="text-md font-black uppercase tracking-tight leading-none mb-1">⚠ Account Pattern Notice</h3>
+                                <p className="font-bold opacity-80 leading-tight text-sm">Your recent activity pattern is unusual. Please ensure fair usage to avoid further security review.</p>
+                            </div>
+                        </div>
+                    )}
+                    
                     {!profile?.isVerified && (
                         <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-xl mb-6 shadow-sm flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -233,7 +258,8 @@ export default function WorkerDashboard() {
 
                     <div className="flex flex-wrap items-center gap-3">
                         <span className="text-slate-500 font-bold flex items-center gap-1.5 bg-white border border-slate-100 px-3 py-1.5 rounded-full text-xs shadow-sm capitalize">
-                            <MapPin size={14} className="text-primary" /> {profile?.workingArea || profile?.district}
+                            <MapPin size={14} className="text-primary" /> 
+                            📍 Current Location: {profile?.workingArea || profile?.district}
                         </span>
                         <span className="text-slate-500 font-bold flex items-center gap-1.5 bg-white border border-slate-100 px-3 py-1.5 rounded-full text-xs shadow-sm capitalize">
                             <Zap size={14} className="text-amber-500" /> {profile?.platform || 'Gig'} Network
@@ -514,7 +540,7 @@ export default function WorkerDashboard() {
                                                             claim.status === 'Rejected' ? 'bg-red-50 text-red-600' : 
                                                             'bg-blue-50 text-blue-600'
                                                         }`}>
-                                                            {claim.status}
+                                                            {claim.status === 'Approved' ? 'Auto-Approved' : 'Rejected'}
                                                         </span>
                                                     </td>
                                                     <td className="px-8 py-5">
@@ -568,21 +594,27 @@ export default function WorkerDashboard() {
                                                         claim.status === 'Rejected' ? 'bg-red-100 text-red-700 border border-red-200' : 
                                                         'bg-blue-100 text-blue-700 border border-blue-200'
                                                     }`}>
-                                                        {claim.status}
+                                                        {claim.status === 'Approved' ? 'Automatically Approved' : 'Rejected - Conditions Not Met'}
                                                     </span>
                                                 </div>
                                                 <p className="text-xs text-slate-400 font-bold mb-3 flex items-center gap-1.5 uppercase tracking-wider">
                                                     <Calendar size={12} /> {new Date(claim.createdAt).toLocaleDateString()} at {new Date(claim.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                                                 </p>
-                                                {claim.status === 'Approved' ? (
-                                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-lg text-[10px] font-black uppercase tracking-wider">
-                                                        <CheckCircle size={14} /> Payout Deposited
+                                                
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                                        <Zap size={10} className="text-amber-400" /> Parametric Trigger Verified
                                                     </div>
-                                                ) : claim.status === 'Rejected' ? (
-                                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-50 text-red-700 rounded-lg text-[10px] font-black uppercase tracking-wider">
-                                                        <XCircle size={14} /> Claim Denied by Admin
-                                                    </div>
-                                                ) : null}
+                                                    {claim.status === 'Approved' ? (
+                                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                                            <CheckCircle size={10} /> Automated Settlement Complete
+                                                        </div>
+                                                    ) : (
+                                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-700 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                                            <XCircle size={10} /> Threshold Not Met
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="flex items-center justify-between md:flex-col md:items-end gap-2 px-4 md:px-0 bg-slate-50 md:bg-transparent py-4 md:py-0 rounded-2xl">

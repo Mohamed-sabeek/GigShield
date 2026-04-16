@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AuthContext } from '../context/AuthContext';
-import { Shield, Users, FileText, CheckCircle, Search, LogOut, TrendingUp, History, Trash2 } from 'lucide-react';
+import { Shield, Users, FileText, CheckCircle, Search, LogOut, TrendingUp, History, Trash2, AlertTriangle, ShieldCheck } from 'lucide-react';
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -150,7 +150,7 @@ export default function AdminDashboard() {
                                     <tr>
                                         <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Worker Instance</th>
                                         <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Claims (T/A/R)</th>
-                                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Success Ratio</th>
+                                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Fraud Risk</th>
                                         <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Cumulative Earnings</th>
                                     </tr>
                                 </thead>
@@ -191,28 +191,33 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-8 py-6">
-                                                <div className="w-32">
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <span className="text-[9px] font-black text-slate-400 uppercase">Performance</span>
-                                                        <span className="text-[9px] font-black text-slate-900">
-                                                            {worker.claimStats?.total > 0 
-                                                                ? Math.round((worker.claimStats.approved / worker.claimStats.total) * 100) 
-                                                                : 0}%
-                                                        </span>
+                                             <td className="px-8 py-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2 rounded-xl ${
+                                                        worker.fraudStatus === 'high_risk' ? 'bg-red-50 text-red-600' :
+                                                        worker.fraudStatus === 'suspicious' ? 'bg-orange-50 text-orange-600' :
+                                                        'bg-green-50 text-green-600'
+                                                    }`}>
+                                                        {worker.fraudStatus === 'high_risk' ? <AlertTriangle size={16} /> : <ShieldCheck size={16} />}
                                                     </div>
-                                                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                                        <div 
-                                                            className="h-full bg-green-500 rounded-full transition-all duration-1000"
-                                                            style={{ 
-                                                                width: `${worker.claimStats?.total > 0 
-                                                                    ? (worker.claimStats.approved / worker.claimStats.total) * 100 
-                                                                    : 0}%` 
-                                                            }}
-                                                        ></div>
+                                                    <div>
+                                                        <div className="flex items-center gap-1.5 font-black text-[10px] uppercase tracking-wider">
+                                                            Score: <span className={
+                                                                worker.fraudScore > 60 ? 'text-red-500' :
+                                                                worker.fraudScore > 30 ? 'text-orange-500' :
+                                                                'text-green-600'
+                                                            }>{worker.fraudScore || 0}</span>
+                                                        </div>
+                                                        <div className={`text-[9px] font-bold uppercase ${
+                                                            worker.fraudStatus === 'high_risk' ? 'text-red-600 animate-pulse' :
+                                                            worker.fraudStatus === 'suspicious' ? 'text-orange-600' :
+                                                            'text-slate-400'
+                                                        }`}>
+                                                            {worker.fraudStatus?.replace('_', ' ')}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </td>
+                                             </td>
                                             <td className="px-8 py-6 text-right">
                                                 <div className="text-sm font-black text-slate-900 bg-slate-50 inline-block px-3 py-1 rounded-lg border border-slate-100">
                                                     ₹{(worker.claimStats?.totalEarnings || 0).toLocaleString()}

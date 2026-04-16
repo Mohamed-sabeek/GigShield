@@ -6,6 +6,7 @@ const Policy = require('../models/Policy');
 
 const axios = require('axios');
 const User = require('../models/User');
+const { calculateFraudScore } = require('../utils/fraudEngine');
 
 // @route   GET api/claim/history
 router.get('/history', auth, async (req, res) => {
@@ -70,25 +71,25 @@ router.post('/trigger', auth, async (req, res) => {
             if (rain >= 2) {
                 approved = true;
                 amount = 500;
-                message = `✅ Claim Approved – ₹500 credited for Rain Disruption (${rain}mm)`;
+                message = `✅ Automatically Approved – Rainfall threshold met (${rain}mm)`;
             } else {
-                message = `❌ Claim Rejected – Conditions not met (Rain: ${rain}mm)`;
+                message = `❌ Automatically Rejected – Conditions not met (Recorded: ${rain}mm)`;
             }
         } else if (disruptionType === 'Heatwave') {
             if (temp >= 40) {
                 approved = true;
                 amount = 500;
-                message = `✅ Claim Approved – ₹500 credited for Heatwave (${temp}°C)`;
+                message = `✅ Automatically Approved – Temperature threshold met (${temp}°C)`;
             } else {
-                message = `❌ Claim Rejected – Conditions not met (Temp: ${temp}°C)`;
+                message = `❌ Automatically Rejected – Conditions not met (Recorded: ${temp}°C)`;
             }
         } else if (disruptionType === 'Flood Disruption') {
             if (rain >= 10) {
                 approved = true;
                 amount = 500;
-                message = `✅ Claim Approved – ₹500 credited for Flood disruption (${rain}mm)`;
+                message = `✅ Automatically Approved – Precipitation threshold met (${rain}mm)`;
             } else {
-                message = `❌ Claim Rejected – Conditions not met (Rainfall: ${rain}mm)`;
+                message = `❌ Automatically Rejected – Conditions not met (Recorded: ${rain}mm)`;
             }
         }
 
@@ -106,6 +107,9 @@ router.post('/trigger', auth, async (req, res) => {
         });
 
         await claim.save();
+
+        // 6. Update Fraud Score
+        await calculateFraudScore(req.user.id);
 
         res.json({
             status: approved ? 'Approved' : 'Rejected',

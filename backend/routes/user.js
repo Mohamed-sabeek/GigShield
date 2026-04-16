@@ -9,7 +9,7 @@ const Policy = require('../models/Policy');
 // @access  Private
 router.get('/profile', auth, async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select('-password');
+        const user = await User.findById(req.user.id).select('-password -fraudScore');
         if (!user) return res.status(404).json({ msg: 'User not found' });
 
         const activePolicy = await Policy.findOne({ userId: req.user.id, status: 'Active' });
@@ -33,20 +33,30 @@ router.get('/profile', auth, async (req, res) => {
 router.put('/profile', auth, async (req, res) => {
     const { name, phone, district, workingArea, lat, lon } = req.body;
 
-    // Build profile object
-    const profileFields = {};
-    if (name) profileFields.name = name;
-    if (phone) profileFields.phone = phone;
-    if (district) profileFields.district = district;
-    if (workingArea) profileFields.workingArea = workingArea;
-    
-    profileFields.location = {};
-    if (lat) profileFields.location.lat = lat;
-    if (lon) profileFields.location.lon = lon;
-
     try {
+        const activePolicy = await Policy.findOne({ 
+            userId: req.user.id, 
+            status: 'Active',
+            endDate: { $gt: new Date() } 
+        });
+
+        if (activePolicy && (district || workingArea || lat || lon)) {
+            return res.status(400).json({ message: "Location cannot be changed during an active policy." });
+        }
+
         let user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        // Build profile object
+        const profileFields = {};
+        if (name) profileFields.name = name;
+        if (phone) profileFields.phone = phone;
+        if (district) profileFields.district = district;
+        if (workingArea) profileFields.workingArea = workingArea;
+        
+        profileFields.location = {};
+        if (lat) profileFields.location.lat = lat;
+        if (lon) profileFields.location.lon = lon;
 
         // Update
         user = await User.findByIdAndUpdate(

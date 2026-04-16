@@ -163,6 +163,7 @@ export default function Profile() {
                 </button>
             </div>
 
+
             {notification && (
                 <div className={`fixed top-10 right-10 z-50 p-4 rounded-2xl shadow-2xl border animate-fade-in ${
                     notification.type === 'success' ? 'bg-green-500 text-white border-green-400' : 'bg-red-500 text-white border-red-400'
@@ -296,7 +297,7 @@ export default function Profile() {
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Primary District</label>
                                     <select 
                                         name="district"
-                                        disabled={!editMode}
+                                        disabled={!editMode || (profile?.policyActive && new Date(profile?.activePolicy?.endDate) > new Date())}
                                         value={formData.district}
                                         onChange={(e) => setFormData({...formData, district: e.target.value, workingArea: ''})}
                                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-700 outline-none focus:border-primary disabled:opacity-70 transition-all font-sans"
@@ -314,7 +315,7 @@ export default function Profile() {
                                         <div className="relative flex-1">
                                             <select 
                                                 name="workingArea"
-                                                disabled={!editMode || !formData.district}
+                                                disabled={!editMode || !formData.district || (profile?.policyActive && new Date(profile?.activePolicy?.endDate) > new Date())}
                                                 value={formData.workingArea}
                                                 onChange={handleChange}
                                                 onBlur={() => editMode && !detectedLoc && formData.workingArea && searchLocation()}
@@ -335,8 +336,8 @@ export default function Profile() {
                                             <button 
                                                 type="button"
                                                 onClick={searchLocation}
-                                                disabled={searching}
-                                                className="bg-primary text-white p-4 rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                                                disabled={searching || (profile?.policyActive && new Date(profile?.activePolicy?.endDate) > new Date())}
+                                                className="bg-primary text-white p-4 rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
                                                 title="Check This Area"
                                             >
                                                 {searching ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : <Navigation size={20} />}
@@ -351,7 +352,8 @@ export default function Profile() {
                                     <button 
                                         type="button"
                                         onClick={useCurrentLocation}
-                                        className="flex-1 bg-slate-900 text-white font-black text-xs uppercase tracking-widest py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-all"
+                                        disabled={profile?.policyActive && new Date(profile?.activePolicy?.endDate) > new Date()}
+                                        className="flex-1 bg-slate-900 text-white font-black text-xs uppercase tracking-widest py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-all disabled:opacity-50 disabled:grayscale"
                                     >
                                         <Navigation size={16} /> Use Current Location
                                     </button>

@@ -89,7 +89,9 @@ router.get('/workers', auth, async (req, res) => {
                 platform: worker.platform || 'Unknown',
                 joined: worker.createdAt,
                 status: policy ? 'Active Policy' : 'Unprotected',
-                claimStats: claimStats
+                claimStats: claimStats,
+                fraudScore: worker.fraudScore || 0,
+                fraudStatus: worker.fraudStatus || 'safe'
             };
         }));
 
