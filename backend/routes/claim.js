@@ -28,8 +28,9 @@ router.post('/trigger', auth, async (req, res) => {
         }
 
         const activePolicy = await Policy.findOne({ userId: req.user.id, status: 'Active' });
-        if (!activePolicy) {
-            return res.status(400).json({ msg: 'No active policy found.' });
+        
+        if (!activePolicy || new Date() > new Date(activePolicy.endDate)) {
+            return res.status(400).json({ msg: 'Policy expired or not found. Please purchase a new plan.' });
         }
 
         // 2. Prevent Duplicate Daily Claims

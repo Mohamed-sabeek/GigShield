@@ -6,7 +6,11 @@ const Policy = require('../models/Policy');
 // @route   GET api/policy/active
 router.get('/active', auth, async (req, res) => {
     try {
-        const policy = await Policy.findOne({ userId: req.user.id, status: 'Active' });
+        const policy = await Policy.findOne({ 
+            userId: req.user.id, 
+            status: 'Active',
+            endDate: { $gt: new Date() } // Ensure policy is not expired
+        });
         res.json(policy);
     } catch (err) {
         res.status(500).send('Server Error');

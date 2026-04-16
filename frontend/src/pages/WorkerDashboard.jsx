@@ -76,21 +76,19 @@ export default function WorkerDashboard() {
     };
 
     const checkEligibility = (activePol, claimsList) => {
-        if (!activePol) {
+        if (!activePol || new Date(activePol.endDate) < new Date()) {
             setEligibility({ status: 'No active policy', message: 'Purchase a policy to become eligible for claims.', canClaim: false });
             return;
         }
 
-        const lastClaim = claimsList[0];
-        if (lastClaim && (lastClaim.status === 'Approved' || lastClaim.status === 'Pending' || lastClaim.status === 'Verified')) {
-            const lastDate = new Date(lastClaim.createdAt);
-            const now = new Date();
-            const diffDays = Math.ceil(Math.abs(now - lastDate) / (1000 * 60 * 60 * 24));
-            
-            if (diffDays < 7) {
-                setEligibility({ status: 'Claim Limit Reached', message: `Your last claim was processed. You can file a new session in ${7 - diffDays} days.`, canClaim: false });
-                return;
-            }
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const existingClaimToday = claimsList.find(c => new Date(c.createdAt) >= today);
+        
+        if (existingClaimToday) {
+            setEligibility({ status: 'Claim Limit Reached', message: `You have already filed a claim today. Please check back tomorrow.`, canClaim: false });
+            return;
         }
 
         setEligibility({ status: 'Eligible for claim today', message: 'Parametric triggers are monitoring your area.', canClaim: true });
@@ -280,14 +278,14 @@ export default function WorkerDashboard() {
                                 <Shield size={120} />
                             </div>
                             <h3 className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] mb-4">Protection State</h3>
-                            <div className={`text-2xl font-black tracking-tighter mb-2 ${activePolicy ? (activePolicy.claimUsed ? 'text-blue-500' : 'text-primary') : 'text-slate-300'}`}>
-                                {activePolicy ? (activePolicy.claimUsed ? 'Under Review' : 'Network Secured') : 'Unprotected'}
+                            <div className={`text-2xl font-black tracking-tighter mb-2 ${activePolicy && new Date(activePolicy.endDate) > new Date() ? 'text-primary' : 'text-slate-300'}`}>
+                                {activePolicy && new Date(activePolicy.endDate) > new Date() ? 'Network Secured' : 'Unprotected'}
                             </div>
-                            <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-wider ${activePolicy ? (activePolicy.claimUsed ? 'text-blue-600' : 'text-cyan-600') : 'text-slate-400'}`}>
-                                {activePolicy ? (
-                                    activePolicy.claimUsed ? <><Clock size={12} /> Verification in Progress</> : <><ShieldCheck size={12} /> Policy ACTIVE & READY</>
+                            <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-wider ${activePolicy && new Date(activePolicy.endDate) > new Date() ? 'text-cyan-600' : 'text-slate-400'}`}>
+                                {activePolicy && new Date(activePolicy.endDate) > new Date() ? (
+                                    <><ShieldCheck size={12} /> Policy ACTIVE & READY</>
                                 ) : (
-                                    <><AlertCircle size={12} /> System Vulnerable</>
+                                    <><AlertCircle size={12} /> System Vulnerable / Expired</>
                                 )}
                             </div>
                         </div>
@@ -444,10 +442,12 @@ export default function WorkerDashboard() {
                                 <div className="space-y-6 flex-1">
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="text-xs font-black text-white bg-slate-900 px-3 py-1 rounded-lg uppercase italic tracking-widest">Premium Plan</span>
-                                        <span className="text-xs font-bold text-primary">Active</span>
+                                        <span className={`text-xs font-bold ${new Date(activePolicy.endDate) > new Date() ? 'text-primary' : 'text-red-500'}`}>
+                                            {new Date(activePolicy.endDate) > new Date() ? 'Active' : 'Expired'}
+                                        </span>
                                     </div>
                                     <div className="flex items-center gap-4">
-                                        <div className="text-4xl font-black text-slate-900 tracking-tighter">₹500 <span className="text-base text-slate-400 font-bold lowercase">/day</span></div>
+                                        <div className="text-4xl font-black text-slate-900 tracking-tighter">₹{activePolicy.coverage} <span className="text-base text-slate-400 font-bold lowercase">/event</span></div>
                                     </div>
                                     <div className="space-y-3">
                                         <div className="flex justify-between text-xs font-bold">

@@ -7,8 +7,7 @@ const PolicySchema = new mongoose.Schema({
     coverage: { type: Number, required: true }, // Default ₹500
     riskScore: { type: Number },
     riskLevel: { type: String }, // Removed strict enum to allow dynamic Tamil Nadu cities
-    claimUsed: { type: Boolean, default: false }, // Track if a claim has been requested for this policy
-    status: { type: String, enum: ['Active', 'Expired', 'Claimed'], default: 'Active' },
+    status: { type: String, enum: ['Active', 'Expired'], default: 'Active' },
     startDate: { type: Date, default: Date.now },
     endDate: {
         type: Date,
