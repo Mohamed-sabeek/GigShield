@@ -15,7 +15,10 @@ const UserSchema = new mongoose.Schema({
     location: {
         lat: { type: Number },
         lon: { type: Number }
-    } // Added
+    },
+    isVerified: { type: Boolean, default: false },
+    otp: { type: String },
+    otpExpiry: { type: Date }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);

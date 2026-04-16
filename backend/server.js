@@ -15,15 +15,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Debug (IMPORTANT - remove later if needed)
-console.log("ENV CHECK:", process.env.MONGO_URI ? "FOUND ✅" : "MISSING ❌");
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/worker', workerRoutes);
 app.use('/api/policy', policyRoutes);
 app.use('/api/claim', claimRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/weather', require('./routes/weather'));
+app.use('/api/users', require('./routes/user'));
+app.use('/api/location', require('./routes/location'));
 
 // Root route (for testing)
 app.get('/', (req, res) => {

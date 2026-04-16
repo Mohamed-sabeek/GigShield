@@ -1,47 +1,34 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { AlertCircle, CloudLightning, CheckCircle, Shield, Calendar, MapPin, Info, Check, Edit2 } from 'lucide-react';
-import Sidebar from '../components/Sidebar';
-import { tnDistricts } from '../utils/districts';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+    ShieldCheck, AlertCircle, Clock, MapPin, 
+    CheckCircle2, History, CloudRain, Waves, 
+    ShieldQuestion, ThermometerSun, Wind, ArrowRight,
+    Zap, ExternalLink
+} from 'lucide-react';
+
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function ClaimPolicy() {
     const { user } = useContext(AuthContext);
-    const [profile, setProfile] = useState(null);
-    const [activePolicy, setActivePolicy] = useState(null);
+    const [claims, setClaims] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [notification, setNotification] = useState(null);
-    const [selectedDisruption, setSelectedDisruption] = useState('Heavy Rain');
-    const [incidentDate, setIncidentDate] = useState(new Date().toISOString().split('T')[0]);
-
-    // Location State
-    const [locationCaptured, setLocationCaptured] = useState(false);
-    const [locationCoords, setLocationCoords] = useState({ lat: null, lon: null, accuracy: null });
-    const [locationSource, setLocationSource] = useState('gps'); // 'gps' | 'ip' | 'manual'
-    const [locationDetails, setLocationDetails] = useState({ city: '', region: '' });
-    const [locationLoading, setLoadingLocation] = useState(false);
-    const [locationError, setLocationError] = useState(null);
-    const [locationConfirmed, setLocationConfirmed] = useState(false);
-
-    // Manual Override State
-    const [manualOverride, setManualOverride] = useState(false);
-    const [manualDistrict, setManualDistrict] = useState('');
-    const [manualWorkingArea, setManualWorkingArea] = useState('');
-
-    const [districtSearch, setDistrictSearch] = useState('');
-    const [showDistrictList, setShowDistrictList] = useState(false);
-
     const [submitting, setSubmitting] = useState(false);
+    const [result, setResult] = useState(null);
+    const [activePolicy, setActivePolicy] = useState(null);
+    const [selectedDisruption, setSelectedDisruption] = useState('Rain Disruption');
 
-    const fetchData = async () => {
+    const fetchHistory = async () => {
         try {
-            const [profRes, polRes] = await Promise.all([
-                axios.get(`${API}/api/worker/profile`),
-                axios.get(`${API}/api/policy/active`)
+            const token = localStorage.getItem('token');
+            const [claimsRes, policyRes] = await Promise.all([
+                axios.get(`${API}/api/claim/history`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                axios.get(`${API}/api/policy/active`, { headers: { 'Authorization': `Bearer ${token}` } })
             ]);
-            setProfile(profRes.data.profile);
-            setActivePolicy(polRes.data || null);
+            setClaims(claimsRes.data);
+            setActivePolicy(policyRes.data || null);
         } catch (err) {
             console.error(err);
         } finally {
@@ -50,393 +37,279 @@ export default function ClaimPolicy() {
     };
 
     useEffect(() => {
-        fetchData();
+        fetchHistory();
     }, []);
 
-    const fetchIPLocation = async () => {
-        setLocationSource('ip');
-        setLoadingLocation(true);
-        try {
-            const res = await axios.get('https://ipapi.co/json/');
-            const { latitude, longitude, city, region } = res.data;
-            setLocationCoords({ lat: latitude, lon: longitude, accuracy: null });
-            setLocationDetails({ city, region });
-            setLocationCaptured(true);
-            setLocationConfirmed(false);
-        } catch (err) {
-            setLocationError('Unable to fetch IP location. Please select manually.');
-            setManualOverride(true);
-            setLocationSource('manual');
-        } finally {
-            setLoadingLocation(false);
-        }
-    };
-
-    const handleGetLocation = () => {
-        setLoadingLocation(true);
-        setLocationError(null);
-        setManualOverride(false);
-        setLocationConfirmed(false);
-
-        if (!navigator.geolocation) {
-            fetchIPLocation();
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude, accuracy } = position.coords;
-                const roundedAcc = Math.round(accuracy);
-                setLocationCoords({ lat: latitude, lon: longitude, accuracy: roundedAcc });
-                
-                // Reverse Geocode
-                axios.get(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`)
-                    .then(res => {
-                        if (res.data && res.data.address) {
-                            const { city, town, village, county, state } = res.data.address;
-                            const cityName = city || town || village || county || 'Unknown';
-                            setLocationDetails({ city: cityName, region: state || '' });
-                        }
-                    })
-                    .catch(err => console.error('Reverse Geocode Failed', err));
-
-                setLocationSource('manual'); // Or keep 'gps' but with details
-                setLocationSource('gps');
-                setLocationCaptured(true);
-
-                if (roundedAcc > 500) {
-                    fetchIPLocation();
-                } else {
-                    setLoadingLocation(false);
-                }
-            },
-            (error) => {
-                fetchIPLocation();
-            },
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-        );
-    };
-
-    const handleManualConfirm = async () => {
-        if (!manualDistrict || !manualWorkingArea) {
-            setLocationError('Please select both District and Working Area.');
-            return;
-        }
-        setLocationSource('manual');
-        setLocationDetails({ city: manualDistrict, region: manualWorkingArea });
-        
-        try {
-            const res = await axios.get(`https://nominatim.openstreetmap.org/search?q=${manualDistrict},Tamil Nadu,India&format=json&limit=1`);
-            if (res.data && res.data[0]) {
-                const { lat, lon } = res.data[0];
-                setLocationCoords({ lat: parseFloat(lat), lon: parseFloat(lon), accuracy: null });
-            } else {
-                setLocationCoords({ lat: null, lon: null, accuracy: null });
-            }
-        } catch (err) {
-            console.error('Manual Geocoding Failed', err);
-            setLocationCoords({ lat: null, lon: null, accuracy: null });
-        }
-
-        setLocationConfirmed(true);
-        setManualOverride(false);
-        setLocationCaptured(true);
-        setLocationError(null);
-    };
-
-    const submitClaimRequest = async (e) => {
-        e.preventDefault();
-        if (!locationConfirmed) {
-            setNotification({ msg: 'Please CONFIRM your location before submitting.', type: 'error' });
-            return;
-        }
-
+    const handleClaim = async () => {
         setSubmitting(true);
-        setNotification(null);
-
+        setResult(null);
         try {
-            const payload = {
-                disruptionType: selectedDisruption,
-                incidentDate,
-                location: {
-                    lat: locationCoords.lat,
-                    lon: locationCoords.lon,
-                    source: locationSource,
-                    accuracy: locationCoords.accuracy,
-                    details: locationDetails
-                },
-                userId: user?._id || profile?._id,
-                policyId: activePolicy?._id,
-                createdAt: new Date().toISOString()
-            };
-
-            const res = await axios.post(`${API}/api/claim/trigger`, payload);
-            setNotification({ msg: res.data.msg || 'Claim submitted successfully', type: 'success' });
-            fetchData();
+            const token = localStorage.getItem('token');
+            const res = await axios.post(`${API}/api/claim/trigger`, { 
+                disruptionType: selectedDisruption 
+            }, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            setResult({
+                status: res.data.status,
+                message: res.data.message,
+                amount: res.data.amount,
+                weather: res.data.weather
+            });
+            fetchHistory(); 
         } catch (err) {
-            const msg = err.response?.data?.msg || 'Error triggering claim request';
-            setNotification({ msg, type: 'error' });
+            setResult({
+                status: 'Error',
+                message: err.response?.data?.msg || 'Verification failed. Please try again.'
+            });
         } finally {
             setSubmitting(false);
         }
     };
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-medium">Loading Claim Panel...</div>;
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-medium italic animate-pulse">Synchronizing Parametric Payout Records...</div>;
 
-    const daysRemaining = activePolicy 
-        ? Math.ceil((new Date(activePolicy.endDate) - new Date()) / (1000 * 60 * 60 * 24)) 
-        : 0;
-
-    const maxDate = new Date().toISOString().split('T')[0];
+    const todayClaim = claims.find(c => new Date(c.createdAt).toDateString() === new Date().toDateString());
+    const savedLocation = user?.workingArea && user?.district ? `${user.workingArea}, ${user.district}` : null;
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-            <Sidebar profile={profile} />
-
-            <div className="flex-1 p-4 md:p-10 max-w-5xl mx-auto w-full">
-                <h1 className="text-3xl font-black text-slate-800 mb-8">Claim Insurance Policy</h1>
-
-                {notification && (
-                    <div className={`p-4 rounded-xl mb-6 font-bold text-sm ${notification.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                        {notification.msg}
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="p-6 md:p-10 max-w-7xl mx-auto w-full pb-32"
+        >
+            <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <div className="flex items-center gap-2 text-primary font-black mb-3 uppercase tracking-[0.3em] text-[10px]">
+                        <Zap size={14} className="fill-primary" /> Instant Parametric Protection
                     </div>
-                )}
+                    <h1 className="text-5xl font-black text-slate-900 tracking-tight">Claim Dashboard</h1>
+                    <p className="text-slate-500 font-medium mt-1">Automatic weather-triggered payouts for gig workers.</p>
+                </div>
 
-                {!activePolicy ? (
-                    <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm text-center py-12">
-                        <AlertCircle className="mx-auto text-slate-400 mb-4" size={48} />
-                        <h3 className="text-xl font-bold text-slate-700 mb-2">No Active Policy Found</h3>
-                        <p className="text-slate-500 text-sm mb-6">You must activate an insurance plan before filing mapping claims.</p>
-                        <a href="/policies" className="inline-block bg-primary hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 text-sm">
-                            View Available Plans
-                        </a>
+                <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
+                    <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
+                        <MapPin size={22} />
                     </div>
-                ) : (
-                    <div className="space-y-6">
-                        {/* 🔹 Policy Info Section (Top Card) */}
-                        <div className="bg-white p-6 rounded-3xl border border-green-200 shadow-sm hover:shadow-md transition-all">
-                            <div className="flex justify-between items-start mb-4">
+                    <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Active Monitoring</p>
+                        <p className="text-sm font-black text-slate-900 leading-none italic">
+                            {savedLocation || "Location Not Set"}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                {/* 🔹 Automated Control Center */}
+                <div className="lg:col-span-2 space-y-10">
+                    <div className="bg-slate-900 rounded-[3rem] p-10 md:p-14 text-white relative overflow-hidden shadow-2xl shadow-slate-900/40">
+                        <div className="absolute top-0 right-0 w-80 h-80 bg-primary/20 rounded-full blur-[120px] -mr-40 -mt-40"></div>
+                        <div className="absolute bottom-0 left-0 w-40 h-40 bg-cyan-400/10 rounded-full blur-[100px] -ml-20 -mb-20"></div>
+
+                        <div className="relative z-10">
+                            <h2 className="text-3xl font-black mb-8 tracking-tight flex items-center gap-4">
+                                <ShieldCheck size={36} className="text-primary" /> Request Payout
+                            </h2>
+
+                            <div className="space-y-8 max-w-xl">
                                 <div>
-                                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                        <Shield className="text-green-500" /> Policy Status: <span className="text-green-600 font-bold">Active ✅</span>
-                                    </h3>
-                                    <p className="text-sm text-slate-500 mt-1">Plan: {activePolicy.planName || 'GigShield Basic'}</p>
+                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 italic">Select Disruption Type</label>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        {[
+                                            { id: 'Rain Disruption', icon: CloudRain, color: 'text-blue-400' },
+                                            { id: 'Heatwave', icon: ThermometerSun, color: 'text-orange-400' },
+                                            { id: 'Flood Disruption', icon: Waves, color: 'text-cyan-400' }
+                                        ].map(item => (
+                                            <button
+                                                key={item.id}
+                                                onClick={() => setSelectedDisruption(item.id)}
+                                                className={`p-5 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 ${
+                                                    selectedDisruption === item.id 
+                                                    ? 'bg-white/10 border-primary shadow-lg scale-105' 
+                                                    : 'bg-white/5 border-white/5 hover:bg-white/10'
+                                                }`}
+                                            >
+                                                <item.icon className={`w-8 h-8 ${item.color}`} />
+                                                <span className="text-xs font-black uppercase tracking-tight">{item.id.split(' ')[0]}</span>
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                                <span className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full border border-green-200">
-                                    Protected
-                                </span>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-green-50/30 p-4 rounded-2xl border border-green-100">
-                                <div className="text-sm">
-                                    <span className="text-slate-500 font-semibold block">Coverage</span>
-                                    <span className="font-bold text-slate-800">₹500 / day</span>
-                                </div>
-                                <div className="text-sm">
-                                    <span className="text-slate-500 font-semibold block">Start Date</span>
-                                    <span className="font-bold text-slate-800">{new Date(activePolicy.startDate).toLocaleDateString()}</span>
-                                </div>
-                                <div className="text-sm">
-                                    <span className="text-slate-500 font-semibold block">Expiry Date</span>
-                                    <span className="font-bold text-slate-800">{new Date(activePolicy.endDate).toLocaleDateString()}</span>
-                                </div>
-                                <div className="text-sm">
-                                    <span className="text-slate-500 font-semibold block">Days Remaining</span>
-                                    <span className="font-black text-green-700">{daysRemaining > 0 ? `${daysRemaining} days` : 'Expires today'}</span>
-                                </div>
-                                <div className="text-sm">
-                                    <span className="text-slate-500 font-semibold block">Claim Used</span>
-                                    <span className="font-bold text-slate-800">{activePolicy.claimUsed ? '1/1' : '0/1'}</span>
+
+                                <div className="pt-4">
+                                    <p className="text-xs font-bold text-slate-400 flex items-center gap-2 mb-6 ml-1">
+                                        <MapPin size={14} className="text-primary" />
+                                        Using saved location: <span className="text-white italic">{savedLocation || 'Please update profile'}</span>
+                                    </p>
+
+                                    {!savedLocation ? (
+                                        <div className="bg-amber-400/10 border border-amber-400/20 p-6 rounded-[2rem] text-amber-300 font-bold text-center">
+                                            Please set your location in profile to claim
+                                        </div>
+                                    ) : !activePolicy ? (
+                                        <div className="bg-slate-800 p-8 rounded-[2rem] border border-white/10 text-center">
+                                            <p className="text-slate-400 font-black uppercase tracking-widest text-xs">No Active Protection Protocol</p>
+                                        </div>
+                                    ) : (
+                                        <button 
+                                            onClick={handleClaim}
+                                            disabled={submitting || todayClaim || !user?.isVerified}
+                                            className={`group w-full py-8 rounded-[2.5rem] font-black text-xl shadow-2xl transition-all flex flex-col items-center justify-center gap-2 ${
+                                                submitting ? 'bg-slate-800 cursor-not-allowed opacity-70' :
+                                                todayClaim ? 'bg-green-500/20 text-green-400 border-2 border-green-500/20 shadow-none' :
+                                                !user?.isVerified ? 'bg-slate-800 text-slate-500' :
+                                                'bg-white text-slate-900 hover:scale-[0.98] active:scale-95'
+                                            }`}
+                                        >
+                                            {submitting ? (
+                                                <>
+                                                    <div className="w-8 h-8 border-4 border-slate-500 border-t-white rounded-full animate-spin"></div>
+                                                    <span className="text-xs font-bold uppercase tracking-widest mt-2">Analyzing weather conditions...</span>
+                                                </>
+                                            ) : todayClaim ? (
+                                                <>
+                                                    <CheckCircle2 size={32} />
+                                                    <span className="text-xs">You have already claimed today</span>
+                                                </>
+                                            ) : !user?.isVerified ? (
+                                                <span className="text-xs">Verify Account to Claim</span>
+                                            ) : (
+                                                <>
+                                                    <div className="flex items-center gap-3">
+                                                        <span>Claim Insurance Payout</span>
+                                                        <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+                                                    </div>
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-1">Instant Automated Verification</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        {/* 🔹 Claim Form Card */}
-                        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm max-w-xl animate-fade-in">
-                            <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                <CloudLightning className="text-secondary" /> Request Insurance Claim
-                            </h3>
-
-                            {activePolicy.claimUsed ? (
-                                <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl text-center">
-                                    <p className="text-orange-800 font-bold mb-1">Claim limit reached.</p>
-                                    <p className="text-sm text-orange-600">Next claim available after renewal on {new Date(activePolicy.endDate).toLocaleDateString()}.</p>
-                                </div>
-                            ) : (
-                                <form onSubmit={submitClaimRequest} className="space-y-5">
-                                    <div>
-                                        <label className="block text-xs font-black text-slate-700 uppercase tracking-widest ml-1 mb-2">Disruption Type</label>
-                                        <select
-                                            className="w-full border-slate-200 rounded-xl p-4 outline-none focus:ring-4 focus:ring-secondary/10 focus:border-secondary transition shadow-sm bg-slate-50/50 border font-medium text-slate-800 cursor-pointer"
-                                            value={selectedDisruption}
-                                            onChange={(e) => setSelectedDisruption(e.target.value)}
-                                            disabled={submitting}
-                                        >
-                                            <option value="Heavy Rain">Heavy Rain 🌧</option>
-                                            <option value="Flood">Flood 🌊</option>
-                                            <option value="Heatwave">Heatwave ☀️</option>
-                                            <option value="Pollution">Pollution 🌫</option>
-                                        </select>
+                    {/* 🔹 Result Component */}
+                    <AnimatePresence>
+                        {result && (
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className={`p-10 md:p-14 rounded-[3.5rem] border shadow-2xl relative overflow-hidden ${
+                                    result.status === 'Approved' ? 'bg-green-50 border-green-100 text-green-900' : 
+                                    'bg-white border-slate-100 text-slate-800'
+                                }`}
+                            >
+                                <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
+                                    <div className={`w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl ${
+                                        result.status === 'Approved' ? 'bg-green-500 text-white shadow-green-500/30' : 'bg-slate-100 text-slate-400'
+                                    }`}>
+                                        {result.status === 'Approved' ? <ShieldCheck size={48} /> : <AlertCircle size={48} />}
                                     </div>
-
-                                    <div>
-                                        <label className="block text-xs font-black text-slate-700 uppercase tracking-widest ml-1 mb-2 flex items-center gap-1">
-                                            <Calendar size={14} /> Incident Date
-                                        </label>
-                                        <input
-                                            type="date"
-                                            max={maxDate}
-                                            value={incidentDate}
-                                            onChange={(e) => setIncidentDate(e.target.value)}
-                                            className="w-full border-slate-200 rounded-xl p-4 outline-none focus:ring-4 focus:ring-secondary/10 focus:border-secondary transition shadow-sm bg-slate-50/50 border font-medium text-slate-800"
-                                            disabled={submitting}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-black text-slate-700 uppercase tracking-widest ml-1 mb-2 flex items-center justify-between">
-                                            <span>Location Verification</span>
-                                            {locationCaptured && (
-                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                                                    locationSource === 'gps' ? 'bg-blue-100 text-blue-700' : 
-                                                    locationSource === 'ip' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'
-                                                }`}>
-                                                    Source: {locationSource === 'gps' ? 'GPS' : locationSource === 'ip' ? 'IP-Based' : 'Manual'}
-                                                </span>
-                                            )}
-                                        </label>
+                                    <div className="flex-1 text-center md:text-left">
+                                        <h3 className="text-4xl font-black mb-3 tracking-tight">
+                                            {result.status === 'Approved' ? 'Claim Approved ✅' : 'Conditions Not Met ❌'}
+                                        </h3>
+                                        <p className="font-bold text-xl opacity-80 mb-8 max-w-xl">
+                                            {result.message}
+                                        </p>
                                         
-                                        {!locationCaptured && !manualOverride ? (
-                                            <div>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleGetLocation}
-                                                    disabled={locationLoading || submitting}
-                                                    className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all ${locationLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                                                >
-                                                    <MapPin size={18} /> {locationLoading ? 'Detecting Location...' : '📍 Detect Current Location'}
-                                                </button>
-                                                {locationError && <p className="text-red-500 text-xs mt-2 ml-1 font-medium">{locationError}</p>}
-                                            </div>
-                                        ) : manualOverride ? (
-                                            <div className="space-y-3 bg-purple-50/50 border border-purple-100 p-4 rounded-xl">
-                                                <p className="text-xs font-black text-purple-800 uppercase tracking-wide flex items-center gap-1"><MapPin size={12} /> Manual Location</p>
-                                                
-                                                <div className="relative">
-                                                    <input
-                                                        type="text"
-                                                        value={districtSearch}
-                                                        onChange={(e) => {
-                                                            const val = e.target.value;
-                                                            setDistrictSearch(val);
-                                                            setShowDistrictList(true);
-                                                            if (Object.keys(tnDistricts).includes(val)) {
-                                                                setManualDistrict(val);
-                                                                setManualWorkingArea('');
-                                                            }
-                                                        }}
-                                                        onFocus={() => setShowDistrictList(true)}
-                                                        className="w-full border-slate-200 rounded-xl p-3 outline-none focus:ring-4 focus:ring-purple-200/50 bg-white border text-sm font-medium text-slate-800"
-                                                        placeholder="Search District"
-                                                        autoComplete="off"
-                                                    />
-                                                    {showDistrictList && (
-                                                        <>
-                                                            <div className="fixed inset-0 z-40" onClick={() => setShowDistrictList(false)}></div>
-                                                            <ul className="absolute z-50 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50 animate-fade-in">
-                                                                {Object.keys(tnDistricts).filter(d => d.toLowerCase().includes(districtSearch.toLowerCase())).map(d => (
-                                                                    <li 
-                                                                        key={d} 
-                                                                        onClick={() => { setManualDistrict(d); setDistrictSearch(d); setManualWorkingArea(''); setShowDistrictList(false); }}
-                                                                        className="px-4 py-2 hover:bg-purple-50 hover:text-purple-700 cursor-pointer text-sm font-medium text-slate-700 transition"
-                                                                    >
-                                                                        {d}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </>
-                                                    )}
+                                        {result.weather && (
+                                            <div className="grid grid-cols-3 gap-4 max-w-sm">
+                                                <div className="bg-white/60 p-4 rounded-2xl border border-white/50 text-center">
+                                                    <CloudRain size={16} className="mx-auto mb-2 text-primary" />
+                                                    <p className="text-[10px] font-black uppercase text-slate-400 mb-1 tracking-widest">Rain</p>
+                                                    <p className="font-black text-slate-900">{result.weather.rain}mm</p>
                                                 </div>
-
-                                                {manualDistrict && (
-                                                    <div className="animate-fade-in">
-                                                        <select
-                                                            className="w-full border-slate-200 rounded-xl p-3 outline-none focus:ring-4 focus:ring-purple-200/50 bg-white border text-sm font-medium text-slate-800 appearance-none cursor-pointer"
-                                                            value={manualWorkingArea}
-                                                            onChange={(e) => setManualWorkingArea(e.target.value)}
-                                                        >
-                                                            <option value="">Working Area</option>
-                                                            {tnDistricts[manualDistrict].map(a => (
-                                                                <option key={a} value={a}>{a}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                )}
-
-                                                <div className="flex gap-2 mt-4">
-                                                    <button type="button" onClick={handleManualConfirm} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-3 rounded-lg text-xs shadow-md shadow-purple-500/20 active:scale-[0.98] transition-all">Confirm</button>
-                                                    <button type="button" onClick={() => { setManualOverride(false); if(locationCoords.lat) setLocationSource('gps'); }} className="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 px-3 rounded-lg text-xs active:scale-[0.98] transition-all">Cancel</button>
+                                                <div className="bg-white/60 p-4 rounded-2xl border border-white/50 text-center">
+                                                    <ThermometerSun size={16} className="mx-auto mb-2 text-orange-500" />
+                                                    <p className="text-[10px] font-black uppercase text-slate-400 mb-1 tracking-widest">Temp</p>
+                                                    <p className="font-black text-slate-900">{result.weather.temp}°C</p>
                                                 </div>
-                                                {locationError && <p className="text-red-500 text-[10px] m-1 text-center font-semibold">{locationError}</p>}
-                                            </div>
-                                        ) : (
-                                            <div className={`p-4 rounded-xl space-y-2 border ${
-                                                locationSource === 'gps' && locationCoords.accuracy <= 100 ? 'bg-green-50 border-green-200' :
-                                                locationSource === 'gps' && locationCoords.accuracy <= 500 ? 'bg-yellow-50 border-yellow-200' :
-                                                locationSource === 'ip' ? 'bg-orange-50 border-orange-200' : 'bg-purple-50 border-purple-200'
-                                            }`}>
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2 font-bold text-sm">
-                                                        {locationSource === 'gps' && locationCoords.accuracy <= 100 ? <CheckCircle className="text-green-600" size={16} /> : <Info className="text-slate-500" size={16} />}
-                                                        {locationSource === 'ip' ? (
-                                                            <span className="text-orange-800">📍 Approx Location ({locationDetails.city}, {locationDetails.region})</span>
-                                                        ) : locationSource === 'manual' ? (
-                                                            <span className="text-purple-800">📍 Manual ({locationDetails.city}, {locationDetails.region})</span>
-                                                        ) : (
-                                                            <span className={locationCoords.accuracy <= 100 ? 'text-green-800' : 'text-yellow-800'}>
-                                                                {locationCoords.accuracy <= 100 ? 'High Accuracy GPS ✅' : 'Approximate GPS ⚠️'}
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                                <div className="bg-white/60 p-4 rounded-2xl border border-white/50 text-center">
+                                                    <Wind size={16} className="mx-auto mb-2 text-cyan-500" />
+                                                    <p className="text-[10px] font-black uppercase text-slate-400 mb-1 tracking-widest">Wind</p>
+                                                    <p className="font-black text-slate-900">{result.weather.wind.toFixed(1)}k/h</p>
                                                 </div>
-                                                
-                                                {locationSource === 'gps' && (
-                                                    <div className="text-xs text-slate-600 font-medium space-y-1">
-                                                        {locationDetails.city && <p className="font-bold text-slate-800 flex items-center gap-1"><MapPin size={12} className="text-red-500" /> {locationDetails.city}, {locationDetails.region}</p>}
-                                                        <p>Coordinates: ({locationCoords.lat?.toFixed(4)}, {locationCoords.lon?.toFixed(4)})</p>
-                                                        <p>Accuracy: {locationCoords.accuracy} meters</p>
-                                                    </div>
-                                                )}
-
-                                                {!locationConfirmed ? (
-                                                    <div className="flex gap-2 mt-3 pt-2 border-t border-dotted">
-                                                        <button type="button" onClick={() => setLocationConfirmed(true)} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg text-xs flex items-center justify-center gap-1"><Check size={14} /> Confirm Location</button>
-                                                        <button type="button" onClick={() => { setManualOverride(true); }} className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-xs flex items-center justify-center gap-1"><Edit2 size={12} /> Change Location</button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center justify-between pt-2 border-t border-green-100 mt-2">
-                                                        <span className="text-xs text-green-700 font-black flex items-center gap-1"><CheckCircle size={12} /> Location Confirmed</span>
-                                                        <button type="button" onClick={() => setLocationConfirmed(false)} className="text-xs text-slate-400 hover:underline">Edit</button>
-                                                    </div>
-                                                )}
                                             </div>
                                         )}
                                     </div>
+                                    {result.status === 'Approved' && (
+                                        <div className="bg-white px-10 py-8 rounded-[3rem] shadow-sm border border-green-100 text-center">
+                                            <p className="text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Credited</p>
+                                            <p className="text-5xl font-black text-green-600">₹{result.amount}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
 
-                                    <button 
-                                        type="submit" 
-                                        disabled={submitting || !locationConfirmed}
-                                        className={`w-full bg-secondary hover:bg-cyan-600 transition shadow-lg shadow-cyan-500/20 text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 fixed md:relative bottom-20 md:bottom-auto left-4 right-4 md:left-0 md:right-0 max-w-[calc(100%-2rem)] md:max-w-none z-40 ${(!locationConfirmed || submitting) ? 'opacity-70 cursor-not-allowed bg-cyan-600/50 shadow-none' : ''}`}
-                                    >
-                                        <CloudLightning size={20} /> {submitting ? 'Submitting...' : 'Submit Claim Request'}
-                                    </button>
-                                    <div className="md:hidden h-24"></div>
-                                </form>
+                {/* 🔹 Sidebar */}
+                <div className="space-y-8">
+                    {/* Recent Payouts */}
+                    <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-sm">
+                        <h3 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3 italic uppercase tracking-tighter">
+                            <History size={22} className="text-primary" /> Recent payouts
+                        </h3>
+                        
+                        <div className="space-y-10">
+                            {claims.length === 0 ? (
+                                <div className="text-center py-10 opacity-30">
+                                    <ShieldQuestion className="mx-auto mb-4" size={48} />
+                                    <p className="text-[10px] font-black uppercase tracking-widest italic">Awaiting history...</p>
+                                </div>
+                            ) : (
+                                claims.slice(0, 4).map((claim, i) => (
+                                    <div key={i} className="flex gap-5 group">
+                                        <div className="flex flex-col items-center">
+                                            <div className={`w-3.5 h-3.5 rounded-full mt-2 outline outline-4 ${
+                                                claim.status === 'Approved' ? 'bg-green-500 outline-green-50' : 'bg-slate-200 outline-slate-50'
+                                            }`}></div>
+                                            {i !== Math.min(claims.length - 1, 3) && <div className="w-px h-16 bg-slate-100 my-1"></div>}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <p className={`text-sm font-black uppercase tracking-tight ${claim.status === 'Approved' ? 'text-green-600' : 'text-slate-400'}`}>
+                                                    {claim.status === 'Approved' ? `₹${claim.payoutAmount} payout` : 'Process rejected'}
+                                                </p>
+                                                <p className="text-[10px] font-black text-slate-300">{new Date(claim.createdAt).toLocaleDateString()}</p>
+                                            </div>
+                                            <p className="text-xs font-bold text-slate-800 italic uppercase opacity-60">
+                                                {claim.disruptionType || 'WEATHER'} TRIGGER
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))
                             )}
-                            <p className="text-[11px] text-slate-400 mt-4 text-center">🛡️ Location is verifying coordinates accurately verified using weather algorithms mapping triggers.</p>
                         </div>
                     </div>
-                )}
+
+                    {/* Protocol Rules */}
+                    <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl shadow-slate-900/40 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12"></div>
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 mb-8 italic">Protocol rules</h4>
+                        <div className="space-y-6">
+                            {[
+                                { l: 'Rain Disruption Threshold', v: '≥ 2mm' },
+                                { l: 'Heatwave Threshold', v: '≥ 40°C' },
+                                { l: 'Flood Protection', v: '≥ 10mm' },
+                                { l: 'Daily Cap', v: '1 Claim' }
+                            ].map((rule, i) => (
+                                <div key={i} className="flex justify-between items-center group">
+                                    <p className="text-xs font-bold text-slate-300 group-hover:text-primary transition-colors">{rule.l}</p>
+                                    <span className="text-[10px] font-black bg-white/10 px-3 py-1 rounded-full">{rule.v}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <p className="mt-8 text-[9px] font-bold text-slate-600 uppercase tracking-widest leading-relaxed">
+                            Claims are processed automatically using parametric rules synced with OpenWeather global mesh.
+                        </p>
+                    </div>
+                </div>
             </div>
-        </div>
+        </motion.div>
     );
 }

@@ -9,8 +9,11 @@ import WorkerDashboard from './pages/WorkerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import Policies from './pages/Policies';
 import ClaimPolicy from './pages/ClaimPolicy';
-import ClaimRequests from './pages/ClaimRequests';
-
+import ClaimsMonitor from './pages/ClaimsMonitor';
+import UserLayout from './layouts/UserLayout';
+import AdminLayout from './layouts/AdminLayout';
+import Profile from './pages/Profile';
+import VerifyOTP from './pages/VerifyOTP';
 const ProtectedRoute = ({ children, roleRequired }) => {
   const { user, token, loading } = useContext(AuthContext);
 
@@ -70,15 +73,27 @@ function AppRoutes() {
   }
 
   return (
-    <Routes>
+    <Routes location={location} key={location.pathname}>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/dashboard" element={<ProtectedRoute roleRequired="worker"><WorkerDashboard /></ProtectedRoute>} />
-      <Route path="/policies" element={<ProtectedRoute roleRequired="worker"><Policies /></ProtectedRoute>} />
-      <Route path="/claim" element={<ProtectedRoute roleRequired="worker"><ClaimPolicy /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute roleRequired="admin"><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/claims" element={<ProtectedRoute roleRequired="admin"><ClaimRequests /></ProtectedRoute>} />
+      <Route path="/verify-otp" element={<VerifyOTP />} />
+      
+      {/* 🔹 User (Worker) Protected Routes with Persistent Layout */}
+      <Route element={<ProtectedRoute roleRequired="worker"><UserLayout /></ProtectedRoute>}>
+        <Route path="/dashboard" element={<WorkerDashboard />} />
+        <Route path="/policies" element={<Policies />} />
+        <Route path="/claim" element={<ClaimPolicy />} />
+        <Route path="/profile" element={<Profile />} />
+      </Route>
+
+      {/* 🔹 Admin Protected Routes with Persistent Layout */}
+      <Route element={<ProtectedRoute roleRequired="admin"><AdminLayout /></ProtectedRoute>}>
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/claims-monitor" element={<ClaimsMonitor />} />
+      </Route>
+      
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

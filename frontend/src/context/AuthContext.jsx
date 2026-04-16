@@ -25,13 +25,23 @@ export const AuthProvider = ({ children }) => {
     const checkUser = async () => {
         try {
             if (token) {
+                // First decode to get basic info immediately
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 if (payload && payload.user) {
-                    setUser({ id: payload.user.id, role: payload.user.role });
+                    setUser({ id: payload.user.id, role: payload.user.role, isVerified: payload.user.isVerified });
+                }
+
+                // Then fetch FULL profile including location
+                const res = await axios.get(`${API}/api/users/profile`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.data.user) {
+                    setUser(res.data.user);
                 }
             }
             setLoading(false);
         } catch (err) {
+            console.error("Auth check failed:", err.message);
             logout();
         }
     };
@@ -58,13 +68,32 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const verifyOTP = async (email, otp) => {
+        try {
+            const res = await axios.post(`${API}/api/auth/verify-otp`, { email, otp });
+            setUser(prev => prev ? { ...prev, isVerified: true } : null);
+            return res.data;
+        } catch (error) {
+            throw error.response?.data?.msg || 'Verification failed';
+        }
+    };
+
+    const resendOTP = async (email) => {
+        try {
+            const res = await axios.post(`${API}/api/auth/resend-otp`, { email });
+            return res.data;
+        } catch (error) {
+            throw error.response?.data?.msg || 'Failed to resend code';
+        }
+    };
+
     const logout = () => {
         setToken(null);
         setUser(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, setUser, token, login, signup, logout, loading }}>
+        <AuthContext.Provider value={{ user, setUser, token, login, signup, verifyOTP, resendOTP, logout, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );

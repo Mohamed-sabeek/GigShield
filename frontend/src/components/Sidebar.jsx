@@ -1,10 +1,11 @@
 import React, { useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, History, Shield, LogOut, CloudLightning } from 'lucide-react';
+import { LayoutDashboard, History, Shield, LogOut, CloudLightning, User } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 
-export default function Sidebar({ activeTab, setActiveTab, profile }) {
-    const { logout } = useContext(AuthContext);
+export default function Sidebar({ activeTab, setActiveTab, profile: propProfile }) {
+    const { user, logout } = useContext(AuthContext);
+    const profile = propProfile || user;
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -13,25 +14,23 @@ export default function Sidebar({ activeTab, setActiveTab, profile }) {
         { id: 'policies', label: 'Policies', icon: <Shield size={20} />, path: '/policies' },
         { id: 'claim', label: 'Claim Policy', icon: <CloudLightning size={20} />, path: '/claim' },
         { id: 'history', label: 'Claims History', icon: <History size={20} />, path: '/dashboard?tab=history' },
+        { id: 'profile', label: 'Profile Settings', icon: <User size={20} />, path: '/profile' },
     ];
 
     const handleNavClick = (item) => {
-        if (item.id === 'dashboard' || item.id === 'history') {
-            if (setActiveTab) {
-                setActiveTab(item.id);
-            } else {
-                navigate(item.path);
-            }
-        } else {
-            navigate(item.path);
-        }
+        navigate(item.path);
     };
 
     const isItemActive = (item) => {
-        if (activeTab) {
-            return activeTab === item.id;
-        }
-        return location.pathname === item.path || (item.id === 'dashboard' && location.pathname === '/dashboard');
+        const searchParams = new URLSearchParams(location.search);
+        const tab = searchParams.get('tab');
+        
+        // Handle the dashboard/history special cases
+        if (item.id === 'history') return tab === 'history';
+        if (item.id === 'dashboard') return location.pathname === '/dashboard' && !tab;
+        
+        // Handle exact path matches for other pages (Policies, Claim Policy)
+        return location.pathname === item.path;
     };
 
     return (

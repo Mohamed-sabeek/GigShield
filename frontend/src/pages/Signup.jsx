@@ -78,20 +78,27 @@ export default function Signup() {
         e.preventDefault();
         setError(null);
 
-        if (formData.password.length < 8) {
+        const { name, email, password, phone, district, workingArea } = formData;
+        
+        if (!name || !email || !district || !workingArea) {
+            setError("Please fill in all required fields.");
+            return;
+        }
+
+        if (password.length < 8) {
              setError("Password must be at least 8 characters long.");
              return;
         }
 
-        if (formData.phone.length !== 10) {
+        if (phone.length !== 10) {
             setError("Phone number must be exactly 10 digits.");
             return;
         }
 
         setLoading(true);
         try {
-            await signup({ ...formData, averageDailyIncome: Number(formData.averageDailyIncome) });
-            navigate('/dashboard');
+            const user = await signup({ ...formData, averageDailyIncome: Number(formData.averageDailyIncome) });
+            navigate(`/verify-otp?email=${formData.email}`);
         } catch (err) {
             setError(err);
         } finally {
@@ -316,7 +323,7 @@ export default function Signup() {
 
                             <button
                                 type="submit"
-                                disabled={loading || !isFormValid()}
+                                disabled={loading}
                                 className="w-full group py-5 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition shadow-2xl shadow-slate-900/20 flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed mt-4"
                             >
                                 {loading ? 'Creating Account...' : (

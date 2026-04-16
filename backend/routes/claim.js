@@ -4,6 +4,9 @@ const auth = require('../middleware/auth');
 const Claim = require('../models/Claim');
 const Policy = require('../models/Policy');
 
+const axios = require('axios');
+const User = require('../models/User');
+
 // @route   GET api/claim/history
 router.get('/history', auth, async (req, res) => {
     try {
@@ -17,38 +20,102 @@ router.get('/history', auth, async (req, res) => {
 // @route   POST api/claim/trigger
 router.post('/trigger', auth, async (req, res) => {
     try {
-        const { disruptionType, incidentDate, location } = req.body;
+        const user = await User.findById(req.user.id);
+        
+        // 1. Requirement Checks
+        if (!user.isVerified) {
+            return res.status(403).json({ msg: 'Account not verified. Please verify your email first.' });
+        }
 
         const activePolicy = await Policy.findOne({ userId: req.user.id, status: 'Active' });
-
         if (!activePolicy) {
-            return res.status(400).json({ msg: 'No active policy found. Claim rejected.' });
+            return res.status(400).json({ msg: 'No active policy found.' });
         }
 
-        if (activePolicy.claimUsed) {
-            return res.status(400).json({ msg: 'Claim already submitted for this week\'s policy.' });
+        // 2. Prevent Duplicate Daily Claims
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const existingClaim = await Claim.findOne({
+            userId: req.user.id,
+            createdAt: { $gte: today }
+        });
+
+        if (existingClaim) {
+            return res.status(400).json({ msg: 'You have already submitted a claim today.' });
         }
 
+        // 3. Fetch Real-time Weather Data
+        const { lat, lon } = user.location;
+        if (!lat || !lon) {
+            return res.status(400).json({ msg: 'Profile location missing. Update your profile first.' });
+        }
+
+        const { disruptionType } = req.body;
+        const apiKey = process.env.OPENWEATHER_API_KEY;
+        const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+        const weatherRes = await axios.get(weatherUrl);
+        const wData = weatherRes.data;
+
+        const rain = wData.rain ? wData.rain['1h'] || 0 : 0;
+        const temp = wData.main.temp;
+        const wind = wData.wind.speed * 3.6;
+
+        // 4. Parametric Rule Engine
+        let approved = false;
+        let amount = 0;
+        let message = 'Conditions not met for payout.';
+
+        if (disruptionType === 'Rain Disruption') {
+            if (rain >= 2) {
+                approved = true;
+                amount = 500;
+                message = `✅ Claim Approved – ₹500 credited for Rain Disruption (${rain}mm)`;
+            } else {
+                message = `❌ Claim Rejected – Conditions not met (Rain: ${rain}mm)`;
+            }
+        } else if (disruptionType === 'Heatwave') {
+            if (temp >= 40) {
+                approved = true;
+                amount = 500;
+                message = `✅ Claim Approved – ₹500 credited for Heatwave (${temp}°C)`;
+            } else {
+                message = `❌ Claim Rejected – Conditions not met (Temp: ${temp}°C)`;
+            }
+        } else if (disruptionType === 'Flood Disruption') {
+            if (rain >= 10) {
+                approved = true;
+                amount = 500;
+                message = `✅ Claim Approved – ₹500 credited for Flood disruption (${rain}mm)`;
+            } else {
+                message = `❌ Claim Rejected – Conditions not met (Rainfall: ${rain}mm)`;
+            }
+        }
+
+        // 5. Create Claim Record
         const claim = new Claim({
             userId: req.user.id,
             policyId: activePolicy.id,
-            disruptionType,
-            incidentDate: incidentDate || undefined,
-            location: location || undefined,
-            payoutAmount: 0, // Wait for admin to set or it defaults to 0
-            status: 'Pending'
+            type: disruptionType || 'WEATHER',
+            disruptionType: disruptionType || 'Weather Event',
+            location: { lat, lon },
+            weatherSnapshot: { rain, temp, wind },
+            status: approved ? 'Approved' : 'Rejected',
+            payoutAmount: amount,
+            autoProcessed: true
         });
 
         await claim.save();
 
-        activePolicy.claimUsed = true;
-        await activePolicy.save();
-
-        res.json({ msg: 'Claim request submitted. Waiting for admin verification.', claim });
+        res.json({
+            status: approved ? 'Approved' : 'Rejected',
+            amount,
+            message,
+            weather: { rain, temp, wind }
+        });
 
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('Claim Automation Error:', err.message);
+        res.status(500).json({ msg: 'Automated claim processing failed. Try again later.' });
     }
 });
 

@@ -40,7 +40,8 @@ Thumbs.db
 .idea/
 
 # =========================
-# CACHE
+# CACHE & METADATA
 # =========================
 .cache/
+.gemini/
 dist/

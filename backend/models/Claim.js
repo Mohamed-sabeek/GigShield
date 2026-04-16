@@ -12,15 +12,15 @@ const ClaimSchema = new mongoose.Schema({
         accuracy: { type: Number },
         details: { city: { type: String }, region: { type: String } }
     },
-    payoutAmount: { type: Number, default: 0 }, // Assigned by admin on approval
-    status: { type: String, enum: ['Pending', 'Verified', 'Approved', 'Rejected'], default: 'Pending' },
-    weatherVerification: {
-        isValid: { type: Boolean },
-        rainfall: { type: Number },
-        condition: { type: String },
-        category: { type: String }, // Low Rain, Moderate Rain, Heavy Rain
-        verifiedAt: { type: Date }
-    }
+    payoutAmount: { type: Number, default: 0 },
+    status: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
+    weatherSnapshot: {
+        rain: { type: Number },
+        temp: { type: Number },
+        wind: { type: Number }
+    },
+    autoProcessed: { type: Boolean, default: true },
+    type: { type: String } // RAIN, HEATWAVE etc.
 }, { timestamps: true });
 
 module.exports = mongoose.model('Claim', ClaimSchema);

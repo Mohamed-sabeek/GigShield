@@ -1,33 +1,28 @@
 import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
-import { useLocation } from 'react-router-dom';
-import AdminSidebar from '../components/AdminSidebar';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { AuthContext } from '../context/AuthContext';
-import { LogOut, Users, FileText, CheckCircle, MapPin, AlertTriangle, IndianRupee, CloudRain, ShieldAlert, LayoutDashboard, Shield, History } from 'lucide-react';
+import { Shield, Users, FileText, CheckCircle, Search, LogOut, TrendingUp, History, Trash2 } from 'lucide-react';
+
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function AdminDashboard() {
     const { logout } = useContext(AuthContext);
+    const navigate = useNavigate();
     const [stats, setStats] = useState(null);
-    const [claims, setClaims] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [actionLoading, setActionLoading] = useState(null);
-    const [verifiedClaims, setVerifiedClaims] = useState({});
     const [workers, setWorkers] = useState([]);
-    const [history, setHistory] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const fetchData = async () => {
         try {
-            const [statsRes, claimsRes, workersRes, historyRes] = await Promise.all([
+            const [statsRes, workersRes] = await Promise.all([
                 axios.get(`${API}/api/admin/dashboard`),
-                axios.get(`${API}/api/admin/claims`),
-                axios.get(`${API}/api/admin/workers`),
-                axios.get(`${API}/api/admin/claims/history`)
+                axios.get(`${API}/api/admin/workers`)
             ]);
             setStats(statsRes.data);
-            setClaims(claimsRes.data);
             setWorkers(workersRes.data);
-            setHistory(historyRes.data);
         } catch (err) {
             console.error(err);
         } finally {
@@ -38,29 +33,6 @@ export default function AdminDashboard() {
     useEffect(() => {
         fetchData();
     }, []);
-
-    const handleAction = async (claimId, action) => {
-        if (action === 'simulate') {
-            setActionLoading(`sim-${claimId}`);
-            // Fake 2-second simulation delay
-            setTimeout(() => {
-                setVerifiedClaims(prev => ({ ...prev, [claimId]: true }));
-                setActionLoading(null);
-            }, 2000);
-            return;
-        }
-
-        setActionLoading(claimId);
-        try {
-            await axios.post(`http://localhost:5000/api/admin/claim/${action}/${claimId}`);
-            fetchData(); // Refresh list and stats
-        } catch (err) {
-            console.error('Action failed', err);
-            alert('Failed to process claim.');
-        } finally {
-            setActionLoading(null);
-        }
-    };
 
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
@@ -75,244 +47,186 @@ export default function AdminDashboard() {
         }
     }, [location.search]);
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-medium">Loading Admin Panel...</div>;
-    if (!stats) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-red-500 font-medium">Failed to load admin stats. Verify your admin role.</div>;
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-medium italic animate-pulse">Synchronizing Network State...</div>;
+    if (!stats) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-red-500 font-medium">Failed to load admin context. Verify credentials.</div>;
 
-
+    const filteredWorkers = workers
+        .filter(w => 
+            w.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            w.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            w.platform?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => (b.claimStats?.totalEarnings || 0) - (a.claimStats?.totalEarnings || 0));
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-            {/* Desktop Sidebar */}
-            <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-
-            <div className="flex-1 p-6 md:p-10 w-full max-w-7xl mx-auto">
-                {/* Mobile Header */}
-                <div className="md:hidden flex justify-between items-center mb-8 bg-white/70 backdrop-blur-xl p-5 rounded-3xl border border-slate-100 shadow-sm sticky top-4 z-50">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                            <Shield className="text-white" size={16} />
-                        </div>
-                        <span className="font-black text-slate-900 tracking-tighter">GigShield<span className="text-cyan-500">.</span></span>
-                    </div>
-                    <button onClick={logout} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
-                        <LogOut size={20} />
-                    </button>
+        <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-6 md:p-10 w-full max-w-7xl mx-auto"
+        >
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+                <div>
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 uppercase">Platform Stats</h1>
+                    <p className="text-slate-500 font-medium">Real-time telemetry and network participation metrics.</p>
                 </div>
-
-
-                {activeTab === 'stats' && (
-                    <>
-                        <div className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                            <div>
-                                <h2 className="text-3xl font-bold text-slate-800 tracking-tight">Platform Overview</h2>
-                                <p className="text-slate-500 font-medium">Macro view of parametic insurance platform</p>
-                            </div>
-                            <span className="bg-slate-800 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-md flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-                                System Online
-                            </span>
-                        </div>
-
-                        {/* Stats Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-                            <div className="card p-6 bg-white hover:shadow-md transition-shadow duration-300 rounded-2xl border border-slate-100">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                                        <Users size={24} />
-                                    </div>
-                                </div>
-                                <h3 className="text-slate-500 text-xs font-bold mb-1 uppercase tracking-wider">Total Workers</h3>
-                                <div className="text-3xl font-black text-slate-800 tracking-tight">{stats.totalWorkers}</div>
-                            </div>
-
-                            <div className="card p-6 bg-white hover:shadow-md transition-shadow duration-300 rounded-2xl border border-slate-100">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-3 bg-cyan-50 text-cyan-600 rounded-xl">
-                                        <FileText size={24} />
-                                    </div>
-                                </div>
-                                <h3 className="text-slate-500 text-xs font-bold mb-1 uppercase tracking-wider">Active Policies</h3>
-                                <div className="text-3xl font-black text-slate-800 tracking-tight">{stats.activePolicies}</div>
-                            </div>
-
-                            <div className="card p-6 bg-white hover:shadow-md transition-shadow duration-300 rounded-2xl border border-slate-100">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-                                        <CheckCircle size={24} />
-                                    </div>
-                                </div>
-                                <h3 className="text-slate-500 text-xs font-bold mb-1 uppercase tracking-wider">Parametric Claims</h3>
-                                <div className="text-3xl font-black text-slate-800 tracking-tight">{stats.totalClaims}</div>
-                            </div>
-
-                            <div className="card p-6 bg-white hover:shadow-md transition-shadow duration-300 rounded-2xl border-2 border-green-100 bg-green-50/30">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-3 bg-green-100 text-green-700 rounded-xl">
-                                        <IndianRupee size={24} />
-                                    </div>
-                                </div>
-                                <h3 className="text-green-800 text-xs font-bold mb-1 uppercase tracking-wider">Total Payouts</h3>
-                                <div className="text-3xl font-black text-green-700 flex items-center tracking-tight">
-                                    ₹{stats.totalPayoutAmount.toLocaleString()}
-                                </div>
-                            </div>
-                        </div>
-
-
-
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            <div className="lg:col-span-2">
-                                <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                    <AlertTriangle className="text-amber-500" /> AI High-Risk Hotspots (Tamil Nadu)
-                                </h3>
-                                <div className="card overflow-hidden bg-white shadow-sm border border-slate-100 rounded-2xl p-2">
-                                    <div className="space-y-2 p-2">
-                                        {stats.highRiskZones.map((zone, idx) => {
-                                            // Assign logic to colored risk badges based on risk type string
-                                            let badgeColor = 'bg-slate-100 text-slate-600';
-                                            if (zone.risk.includes('Flood')) badgeColor = 'bg-red-100 text-red-700';
-                                            else if (zone.risk.includes('Heat')) badgeColor = 'bg-orange-100 text-orange-700';
-                                            else if (zone.risk.includes('Rain')) badgeColor = 'bg-blue-100 text-blue-700';
-                                            else if (zone.risk.includes('Low Risk')) badgeColor = 'bg-green-100 text-green-700';
-
-                                            return (
-                                                <div key={idx} className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 transition p-4 rounded-xl border border-slate-100">
-                                                    <div className="flex items-center gap-3">
-                                                        <MapPin className="text-slate-400" size={18} />
-                                                        <p className="font-bold text-slate-800 text-lg">{zone.city}</p>
-                                                    </div>
-                                                    <span className={`text-xs px-3 py-1.5 rounded-full font-bold shadow-sm uppercase tracking-wider ${badgeColor}`}>
-                                                        {zone.risk}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <div className="card bg-gradient-to-br from-slate-900 to-slate-800 text-white p-8 shadow-xl shadow-slate-900/10 rounded-3xl relative overflow-hidden">
-                                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-cyan-500 opacity-20 blur-3xl rounded-full"></div>
-                                    <h3 className="font-bold text-xl mb-6 text-cyan-400 flex items-center gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                                        System Intelligence
-                                    </h3>
-                                    <ul className="space-y-5 text-sm font-medium text-slate-300 relative z-10">
-                                        <li className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                                            <span className="flex items-center gap-2"><CloudRain size={16} className="text-blue-400" /> Weather APIs</span>
-                                            <span className="text-green-400 font-bold bg-green-400/10 px-2 py-0.5 rounded">Online</span>
-                                        </li>
-                                        <li className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                                            <span className="flex items-center gap-2"><IndianRupee size={16} className="text-emerald-400" /> Payout Gateway</span>
-                                            <span className="text-green-400 font-bold bg-green-400/10 px-2 py-0.5 rounded">Stable</span>
-                                        </li>
-                                        <li className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                                            <span className="flex items-center gap-2"><ShieldAlert size={16} className="text-amber-400" /> Fraud Detection</span>
-                                            <span className="text-green-400 font-bold bg-green-400/10 px-2 py-0.5 rounded">Active</span>
-                                        </li>
-                                        <li className="flex justify-between items-center">
-                                            <span className="flex items-center gap-2"><CheckCircle size={16} className="text-green-400" /> System Status</span>
-                                            <span className="text-green-400 font-bold bg-green-400/10 px-2 py-0.5 rounded">Healthy</span>
-                                        </li>
-                                    </ul>
-                                    <div className="mt-8 pt-5 border-t border-slate-700/50 relative z-10">
-                                        <p className="text-xs text-slate-400 font-medium text-center tracking-wide">GigShield AI v2.0 • Operational</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </>
-                )}
-
-                {activeTab === 'workers' && (
-                    <div>
-                        <h2 className="text-3xl font-bold text-slate-800 mb-2">Workers Database</h2>
-                        <p className="text-slate-500 mb-8 font-medium">Manage all enrolled gig workers and view their policy states.</p>
-
-                        <div className="card overflow-hidden bg-white shadow-sm border border-slate-100 rounded-2xl">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-slate-50 border-b border-slate-100">
-                                            <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Name</th>
-                                            <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Location</th>
-                                            <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Platform</th>
-                                            <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {workers.map(w => (
-                                            <tr key={w.id} className="hover:bg-slate-50 transition">
-                                                <td className="py-4 px-6 font-bold text-slate-800">{w.name}</td>
-                                                <td className="py-4 px-6 text-slate-600 font-medium">{w.city}</td>
-                                                <td className="py-4 px-6 text-slate-600 font-medium">{w.platform}</td>
-                                                <td className="py-4 px-6">
-                                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wider ${w.status === 'Active Policy' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                                                        {w.status}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                <div className="flex items-center gap-3">
+                    <div className="bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Autonomous Sync: OK</span>
                     </div>
-                )}
-
-                {activeTab === 'history' && (
-                    <div>
-                        <h2 className="text-3xl font-bold text-slate-800 mb-2">Claim History</h2>
-                        <p className="text-slate-500 mb-8 font-medium">Review all previously processed insurance claims.</p>
-
-                        <div className="card overflow-hidden bg-white shadow-sm border border-slate-100 rounded-2xl">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-slate-50 border-b border-slate-100">
-                                            <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Worker</th>
-                                            <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Disruption</th>
-                                            <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Payout</th>
-                                            <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                                            <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {history.length === 0 ? (
-                                            <tr>
-                                                <td colSpan="5" className="py-8 text-center text-slate-500 font-medium">No processed claims found.</td>
-                                            </tr>
-                                        ) : (
-                                            history.map(h => (
-                                                <tr key={h._id} className="hover:bg-slate-50 transition">
-                                                    <td className="py-4 px-6">
-                                                        <div className="font-bold text-slate-800">{h.userId?.name}</div>
-                                                        <div className="text-xs text-slate-400">{h.userId?.city}</div>
-                                                    </td>
-                                                    <td className="py-4 px-6">
-                                                        <span className="text-slate-700 font-medium bg-slate-100 px-2 py-0.5 rounded text-sm">{h.disruptionType}</span>
-                                                    </td>
-                                                    <td className="py-4 px-6 font-bold text-slate-800">₹{h.payoutAmount || 0}</td>
-                                                    <td className="py-4 px-6">
-                                                        <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter ${h.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                            {h.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-4 px-6 text-slate-500 text-sm">{new Date(h.updatedAt || h.createdAt).toLocaleDateString()}</td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-
-
+                </div>
             </div>
-        </div>
+
+            {activeTab === 'stats' && (
+                <div className="space-y-10">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="p-3 bg-cyan-50 text-cyan-600 rounded-2xl group-hover:scale-110 transition-transform">
+                                    <Users size={24} />
+                                </div>
+                            </div>
+                            <h3 className="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">Total Workers</h3>
+                            <div className="text-3xl font-black text-slate-900">{stats.totalWorkers}</div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl group-hover:scale-110 transition-transform">
+                                    <Shield size={24} />
+                                </div>
+                            </div>
+                            <h3 className="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">Active Policies</h3>
+                            <div className="text-3xl font-black text-slate-900">{stats.activePolicies}</div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="p-3 bg-green-50 text-green-600 rounded-2xl group-hover:scale-110 transition-transform">
+                                    <CheckCircle size={24} />
+                                </div>
+                            </div>
+                            <h3 className="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">Total Payouts</h3>
+                            <div className="text-3xl font-black text-slate-900">₹{stats.totalPayoutAmount?.toLocaleString()}</div>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-900 rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden shadow-2xl shadow-slate-900/20">
+                        <div className="absolute top-0 right-0 p-10 opacity-10">
+                            <TrendingUp size={240} />
+                        </div>
+                        <div className="relative z-10 max-w-2xl">
+                            <h2 className="text-3xl font-black tracking-tight mb-4 uppercase italic text-primary">Parametric Intelligence</h2>
+                            <p className="text-slate-400 text-lg mb-8 leading-relaxed font-bold italic">Platform activity is currently being monitored in real-time. Automated payout triggers are active and executing with decentralized transparency across all protected districts.</p>
+                            <div className="flex gap-4">
+                                <button onClick={() => navigate('/admin/claims-monitor')} className="bg-primary hover:bg-white text-slate-900 font-black py-4 px-10 rounded-2xl transition-all flex items-center gap-2 uppercase tracking-widest text-xs">
+                                     Monitor Claims <History size={18} />
+                                </button>
+                            </div>
+                        </div>
+                   </div>
+                </div>
+            )}
+
+            {activeTab === 'workers' && (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
+                        <div className="relative w-full md:w-96">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <input 
+                                type="text" 
+                                placeholder="Search by name, platform or district..." 
+                                className="w-full pl-12 pr-4 py-4 rounded-3xl border border-slate-100 focus:border-primary outline-none transition-all font-black text-slate-700 shadow-sm"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50 border-b border-slate-100">
+                                    <tr>
+                                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Worker Instance</th>
+                                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Claims (T/A/R)</th>
+                                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Success Ratio</th>
+                                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Cumulative Earnings</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {filteredWorkers.map(worker => (
+                                        <tr key={worker.id} className="hover:bg-slate-50/50 transition-colors group">
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-sm group-hover:bg-primary group-hover:text-slate-900 transition-all">
+                                                        {worker.name?.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-black text-slate-900 text-sm flex items-center gap-2">
+                                                            {worker.name}
+                                                            <span className={`text-[8px] px-1.5 py-0.5 rounded border ${worker.platform === 'Swiggy' ? 'text-orange-500 border-orange-100' : 'text-blue-500 border-blue-100'}`}>
+                                                                {worker.platform}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight italic">{worker.city}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6 text-center">
+                                                <div className="flex items-center justify-center gap-3">
+                                                    <div className="text-center">
+                                                        <div className="text-xs font-black text-slate-900">{worker.claimStats?.total || 0}</div>
+                                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Total</div>
+                                                    </div>
+                                                    <div className="w-[1px] h-6 bg-slate-100"></div>
+                                                    <div className="text-center">
+                                                        <div className="text-xs font-black text-green-600">{worker.claimStats?.approved || 0}</div>
+                                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Apprv</div>
+                                                    </div>
+                                                    <div className="w-[1px] h-6 bg-slate-100"></div>
+                                                    <div className="text-center">
+                                                        <div className="text-xs font-black text-red-500">{worker.claimStats?.rejected || 0}</div>
+                                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Rej</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <div className="w-32">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-[9px] font-black text-slate-400 uppercase">Performance</span>
+                                                        <span className="text-[9px] font-black text-slate-900">
+                                                            {worker.claimStats?.total > 0 
+                                                                ? Math.round((worker.claimStats.approved / worker.claimStats.total) * 100) 
+                                                                : 0}%
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div 
+                                                            className="h-full bg-green-500 rounded-full transition-all duration-1000"
+                                                            style={{ 
+                                                                width: `${worker.claimStats?.total > 0 
+                                                                    ? (worker.claimStats.approved / worker.claimStats.total) * 100 
+                                                                    : 0}%` 
+                                                            }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6 text-right">
+                                                <div className="text-sm font-black text-slate-900 bg-slate-50 inline-block px-3 py-1 rounded-lg border border-slate-100">
+                                                    ₹{(worker.claimStats?.totalEarnings || 0).toLocaleString()}
+                                                </div>
+                                                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-1">Paid Out</div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </motion.div>
     );
 }

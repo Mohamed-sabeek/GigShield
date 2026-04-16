@@ -10,29 +10,18 @@ export default function AdminSidebar({ activeTab, setActiveTab }) {
 
     const navItems = [
         { id: 'stats', label: 'Platform Stats', icon: <LayoutDashboard size={20} />, path: '/admin' },
-        { id: 'claims', label: 'Claim Requests', icon: <FileText size={20} />, path: '/admin/claims' },
+        { id: 'monitor', label: 'Claims Monitor', icon: <FileText size={20} />, path: '/admin/claims-monitor' },
         { id: 'workers', label: 'Workers DB', icon: <Users size={20} />, path: '/admin?tab=workers' },
-        { id: 'history', label: 'Approved History', icon: <History size={20} />, path: '/admin?tab=history' },
     ];
 
     const handleNavClick = (item) => {
-        if (item.path.startsWith('/admin?tab=')) {
-            const tab = item.path.split('=')[1];
-            if (location.pathname === '/admin') {
-                if (setActiveTab) setActiveTab(tab);
-            } else {
-                navigate(`/admin?tab=${tab}`);
-            }
-        } else {
-            navigate(item.path);
-        }
+        navigate(item.path);
     };
 
     const isItemActive = (item) => {
-        if (item.id === 'claims' && location.pathname === '/admin/claims') return true;
+        if (item.id === 'monitor' && location.pathname === '/admin/claims-monitor') return true;
         if (item.id === 'stats' && location.pathname === '/admin' && activeTab === 'stats') return true;
         if (item.id === 'workers' && location.pathname === '/admin' && activeTab === 'workers') return true;
-        if (item.id === 'history' && location.pathname === '/admin' && activeTab === 'history') return true;
         return false;
     };
 

@@ -16,10 +16,10 @@ router.get('/dashboard', auth, async (req, res) => {
         const activePoliciesCount = await Policy.countDocuments({ status: 'Active' });
         const totalClaims = await Claim.countDocuments();
 
-        const claims = await Claim.find({ status: 'Approved' });
-        const totalPayoutAmount = claims.reduce((acc, curr) => acc + curr.payoutAmount, 0);
+        const approvedClaims = await Claim.find({ status: 'Approved' });
+        const totalPayoutAmount = approvedClaims.reduce((acc, curr) => acc + curr.payoutAmount, 0);
+        const pendingClaims = await Claim.countDocuments({ status: { $in: ['Pending', 'Verified'] } });
 
-        // Simulate high risk zones from dummy data calculation
         const highRiskZones = [
             { city: 'Chennai', risk: 'Flood Risk' },
             { city: 'Madurai', risk: 'Extreme Heat Risk' },
@@ -31,6 +31,7 @@ router.get('/dashboard', auth, async (req, res) => {
             totalWorkers,
             activePolicies: activePoliciesCount,
             totalClaims,
+            pendingClaims,
             totalPayoutAmount,
             highRiskZones
         });
@@ -39,67 +40,17 @@ router.get('/dashboard', auth, async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
+
 // @route   GET api/admin/claims
 router.get('/claims', auth, async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Not authorized' });
 
-        const claims = await Claim.find({ status: { $in: ['Pending', 'Verified'] } })
+        const claims = await Claim.find()
             .populate('userId', 'name city district workingArea platform')
             .sort({ createdAt: -1 });
 
         res.json(claims);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
-});
-
-// @route   POST api/admin/claim/approve/:id
-router.post('/claim/approve/:id', auth, async (req, res) => {
-    try {
-        if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Not authorized' });
-
-        const claim = await Claim.findById(req.params.id);
-        if (!claim) return res.status(404).json({ msg: 'Claim not found' });
-
-        const policy = await Policy.findById(claim.policyId);
-
-        claim.status = 'Approved';
-        claim.payoutAmount = policy ? policy.coverage : 500;
-        await claim.save();
-
-        if (policy) {
-            policy.status = 'Claimed';
-            await policy.save();
-        }
-
-        res.json({ msg: 'Claim Approved', claim });
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
-});
-
-// @route   POST api/admin/claim/reject/:id
-router.post('/claim/reject/:id', auth, async (req, res) => {
-    try {
-        if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Not authorized' });
-
-        const claim = await Claim.findById(req.params.id);
-        if (!claim) return res.status(404).json({ msg: 'Claim not found' });
-
-        claim.status = 'Rejected';
-        await claim.save();
-
-        // Reset claimUsed in policy
-        const policy = await Policy.findById(claim.policyId);
-        if (policy) {
-            policy.claimUsed = false;
-            await policy.save();
-        }
-
-        res.json({ msg: 'Claim Rejected', claim });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -117,13 +68,28 @@ router.get('/workers', auth, async (req, res) => {
 
         const workersData = await Promise.all(workers.map(async (worker) => {
             const policy = await Policy.findOne({ userId: worker._id, status: 'Active' });
+            
+            // Fetch claim stats for this specific worker
+            const claims = await Claim.find({ userId: worker._id });
+            
+            const claimStats = {
+                total: claims.length,
+                approved: claims.filter(c => c.status === 'Approved').length,
+                rejected: claims.filter(c => c.status === 'Rejected').length,
+                totalEarnings: claims
+                    .filter(c => c.status === 'Approved')
+                    .reduce((sum, curr) => sum + (curr.payoutAmount || 0), 0)
+            };
+
             return {
                 id: worker._id,
                 name: worker.name,
+                email: worker.email, 
                 city: worker.district || worker.city || 'Unknown',
                 platform: worker.platform || 'Unknown',
                 joined: worker.createdAt,
-                status: policy ? 'Active Policy' : 'Unprotected'
+                status: policy ? 'Active Policy' : 'Unprotected',
+                claimStats: claimStats
             };
         }));
 
@@ -134,106 +100,16 @@ router.get('/workers', auth, async (req, res) => {
     }
 });
 
-// @route   GET api/admin/claims/history
-router.get('/claims/history', auth, async (req, res) => {
+// @route   DELETE api/admin/claim/:id
+router.delete('/claim/:id', auth, async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Not authorized' });
 
-        const claims = await Claim.find({ status: { $in: ['Approved', 'Rejected'] } })
-            .populate('userId', 'name city district workingArea platform')
-            .sort({ updatedAt: -1 });
-
-        res.json(claims);
+        await Claim.findByIdAndDelete(req.params.id);
+        res.json({ msg: 'Claim record deleted' });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
-    }
-});
-
-// @route   POST api/admin/verify-claim
-router.post('/verify-claim', auth, async (req, res) => {
-    try {
-        if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Not authorized' });
-
-        const { lat, lon, date, claimId } = req.body;
-        console.log("VERIFY INPUT:", { lat, lon, date, claimId });
-
-        if (!lat || !lon || !date || !claimId) {
-            return res.status(400).json({ success: false, message: "Missing required fields (lat, lon, date, claimId)" });
-        }
-
-        if (isNaN(new Date(date).getTime())) {
-            return res.status(400).json({ success: false, message: "Invalid date format" });
-        }
-
-        const claim = await Claim.findById(claimId);
-        if (!claim) return res.status(404).json({ msg: 'Claim not found' });
-
-        // Prevent Re-Verification
-        if (claim.status === 'Verified' || claim.weatherVerification?.verifiedAt) {
-            return res.status(400).json({ success: false, msg: 'Claim is already verified' });
-        }
-
-        const apiKey = process.env.OPENWEATHER_API_KEY;
-        if (!apiKey || apiKey === 'your_openweather_api_key_here') {
-            return res.status(500).json({ success: false, msg: 'Weather API is not configured in .env' });
-        }
-
-        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
-        const weatherRes = await fetch(url);
-        
-        if (!weatherRes.ok) {
-            const errorText = await weatherRes.text();
-            console.error("OpenWeather API Error Response:", errorText);
-            return res.status(weatherRes.status).json({ success: false, message: `Weather API Error: ${errorText}` });
-        }
-
-        const data = await weatherRes.json();
-        console.log("WEATHER RESPONSE:", data);
-
-        const mainCondition = data.weather[0]?.main || 'Clear';
-        const rain1h = data.rain?.['1h'] || 0;
-
-        // Classification Logic
-        // rain < 2 mm → "Low Rain" → INVALID
-        // rain 2–5 mm → "Moderate Rain" → VALID
-        // rain > 5 mm → "Heavy Rain" → VALID
-        let category = 'No Rain';
-        let isValid = false;
-
-        if (rain1h >= 5 || mainCondition === 'Rain') { // Note: OpenWeather main condition fallback
-             category = 'Heavy Rain';
-             isValid = true;
-        } else if (rain1h >= 2) {
-             category = 'Moderate Rain';
-             isValid = true;
-        } else if (rain1h > 0) {
-             category = 'Low Rain';
-        }
-
-        // Save verification data to DB
-        claim.weatherVerification = {
-            isValid,
-            rainfall: rain1h,
-            condition: mainCondition,
-            category,
-            verifiedAt: new Date()
-        };
-        claim.status = 'Verified';
-        await claim.save();
-
-        res.json({
-            success: true,
-            isValid,
-            rainfall: rain1h,
-            condition: mainCondition,
-            category,
-            verifiedAt: claim.weatherVerification.verifiedAt
-        });
-
-    } catch (err) {
-        console.error('Weather Verification Error:', err.message);
-        res.status(500).json({ success: false, msg: 'Weather API Failure', error: err.message });
     }
 });
 

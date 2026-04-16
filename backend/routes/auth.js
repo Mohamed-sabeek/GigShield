@@ -4,9 +4,15 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+const { sendOTP } = require('../utils/emailService');
+
 const generateToken = (userId, role) => {
     const payload = { user: { id: userId, role } };
     return jwt.sign(payload, process.env.JWT_SECRET || 'supersecret12345', { expiresIn: '7d' });
+};
+
+const generateOTP = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 // @route   POST api/auth/signup
@@ -19,18 +25,81 @@ router.post('/signup', async (req, res) => {
             return res.status(400).json({ msg: 'User already exists' });
         }
 
+        const otp = generateOTP();
+        const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
         user = new User({
             name, email, password, role, platform, city, workingArea, averageDailyIncome,
-            phone, jobType, district, location // Added fields
+            phone, jobType, district, location,
+            otp, otpExpiry, isVerified: false
         });
 
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(password, salt);
         await user.save();
 
-        const token = generateToken(user.id, user.role);
-        res.json({ token, user: { id: user.id, name: user.name, role: user.role } });
+        // Send OTP via email
+        try {
+            await sendOTP(email, otp);
+        } catch (emailError) {
+            console.error('Email sending failed:', emailError);
+            // Optionally: could delete user if email fails, but better to allow "resend"
+        }
 
+        const token = generateToken(user.id, user.role);
+        res.json({ token, user: { id: user.id, name: user.name, role: user.role, isVerified: user.isVerified } });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
+// @route   POST api/auth/verify-otp
+router.post('/verify-otp', async (req, res) => {
+    const { email, otp } = req.body;
+    try {
+        let user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        if (user.isVerified) return res.status(400).json({ msg: 'User already verified' });
+
+        if (!user.otp || user.otp !== otp) {
+            return res.status(400).json({ msg: 'Invalid verification code' });
+        }
+
+        if (new Date() > user.otpExpiry) {
+            return res.status(400).json({ msg: 'Code expired. Please request a new one.' });
+        }
+
+        user.isVerified = true;
+        user.otp = undefined;
+        user.otpExpiry = undefined;
+        await user.save();
+
+        res.json({ msg: 'Account verified successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
+// @route   POST api/auth/resend-otp
+router.post('/resend-otp', async (req, res) => {
+    const { email } = req.body;
+    try {
+        let user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        if (user.isVerified) return res.status(400).json({ msg: 'User already verified' });
+
+        const otp = generateOTP();
+        user.otp = otp;
+        user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+        await user.save();
+
+        await sendOTP(email, otp);
+        res.json({ msg: 'A new verification code has been sent to your email' });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');
@@ -53,7 +122,7 @@ router.post('/login', async (req, res) => {
         }
 
         const token = generateToken(user.id, user.role);
-        res.json({ token, user: { id: user.id, name: user.name, role: user.role } });
+        res.json({ token, user: { id: user.id, name: user.name, role: user.role, isVerified: user.isVerified } });
 
     } catch (err) {
         console.error(err.message);
