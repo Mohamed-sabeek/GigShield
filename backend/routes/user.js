@@ -55,7 +55,7 @@ router.get('/profile', auth, async (req, res) => {
 // @desc    Update user profile
 // @access  Private
 router.put('/profile', auth, async (req, res) => {
-    const { name, phone, district, workingArea, lat, lon } = req.body;
+    const { name, phone, district, workingArea, averageDailyIncome, lat, lon } = req.body;
 
     try {
         const activePolicy = await Policy.findOne({ 
@@ -83,6 +83,7 @@ router.put('/profile', auth, async (req, res) => {
         if (phone) profileFields.phone = phone;
         if (district) profileFields.district = district;
         if (workingArea) profileFields.workingArea = workingArea;
+        if (averageDailyIncome !== undefined) profileFields.averageDailyIncome = averageDailyIncome;
         
         profileFields.location = {};
         if (lat) profileFields.location.lat = lat;

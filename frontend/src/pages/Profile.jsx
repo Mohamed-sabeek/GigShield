@@ -20,6 +20,7 @@ export default function Profile() {
         phone: '',
         district: '',
         workingArea: '',
+        averageDailyIncome: '',
         lat: '',
         lon: ''
     });
@@ -35,6 +36,7 @@ export default function Profile() {
             phone: profile.phone || '',
             district: profile.district || '',
             workingArea: profile.workingArea || '',
+            averageDailyIncome: profile.averageDailyIncome || '',
             lat: profile.location?.lat || '',
             lon: profile.location?.lon || ''
         };
@@ -54,6 +56,7 @@ export default function Profile() {
                 phone: profileData.phone || '',
                 district: profileData.district || '',
                 workingArea: profileData.workingArea || '',
+                averageDailyIncome: profileData.averageDailyIncome || '',
                 lat: profileData.lat || '',
                 lon: profileData.lon || ''
             });
@@ -165,6 +168,7 @@ export default function Profile() {
                             phone: profile.phone || '',
                             district: profile.district || '',
                             workingArea: profile.workingArea || '',
+                            averageDailyIncome: profile.averageDailyIncome || '',
                             lat: profile.lat,
                             lon: profile.lon
                         });
@@ -213,6 +217,13 @@ export default function Profile() {
                                     <div>
                                         <p className="text-[10px] text-slate-400 font-black uppercase">Home District / Area</p>
                                         <p className="text-sm font-bold text-slate-700">{profile.district || 'Not set'} {profile.workingArea && `/ ${profile.workingArea}`}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 border-l-4 border-l-green-400/30">
+                                    <IndianRupee className="text-slate-400" size={18} />
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase">Daily Income</p>
+                                        <p className="text-sm font-black text-slate-900">₹{profile.averageDailyIncome || 0}</p>
                                     </div>
                                 </div>
                             </div>
@@ -301,6 +312,24 @@ export default function Profile() {
                                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-700 outline-none focus:border-primary disabled:opacity-70 transition-all font-sans"
                                     />
                                 </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 text-primary italic">Est. Daily Income (₹)</label>
+                                    <div className="relative">
+                                        <IndianRupee size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input 
+                                            type="number"
+                                            name="averageDailyIncome"
+                                            disabled={!editMode}
+                                            value={formData.averageDailyIncome}
+                                            onChange={handleChange}
+                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-5 py-3.5 font-bold text-slate-700 outline-none focus:border-primary disabled:opacity-70 transition-all font-sans"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="hidden sm:block"></div>
                             </div>
 
                             <div className="pt-6 border-t border-slate-50">
