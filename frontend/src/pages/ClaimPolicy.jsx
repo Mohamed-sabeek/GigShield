@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +13,7 @@ import {
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function ClaimPolicy() {
+    const navigate = useNavigate();
     const { user } = useContext(AuthContext);
     const [claims, setClaims] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -48,6 +50,10 @@ export default function ClaimPolicy() {
     }, []);
 
     const handleClaim = async () => {
+        if (!profile?.locationSynced) {
+            navigate('/dashboard?sync_highlight=true');
+            return;
+        }
         setSubmitting(true);
         setResult(null);
         try {
@@ -202,6 +208,11 @@ export default function ClaimPolicy() {
                                                 </>
                                             ) : !user?.isVerified ? (
                                                 <span className="text-xs">Verify Account to Claim</span>
+                                            ) : !profile?.locationSynced ? (
+                                                <>
+                                                    <MapPin size={32} />
+                                                    <span className="text-xs">GPS Sync Required from Dashboard</span>
+                                                </>
                                             ) : (
                                                 <>
                                                     <div className="flex items-center gap-3">

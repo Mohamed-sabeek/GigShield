@@ -19,6 +19,9 @@ const UserSchema = new mongoose.Schema({
     isVerified: { type: Boolean, default: false },
     otp: { type: String },
     otpExpiry: { type: Date },
+    latitude: Number,
+    longitude: Number,
+    locationSynced: { type: Boolean, default: false },
     // Fraud Detection Fields
     fraudScore: {
         type: Number,

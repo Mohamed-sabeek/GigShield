@@ -102,4 +102,31 @@ router.put('/profile', auth, async (req, res) => {
     }
 });
 
+// @route   POST api/users/update-location
+// @desc    One-time location sync for new users
+// @access  Private
+router.post("/update-location", auth, async (req, res) => {
+    try {
+        const { latitude, longitude } = req.body;
+        const user = await User.findById(req.user.id);
+
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        user.latitude = latitude;
+        user.longitude = longitude;
+        
+        // Also update the legacy location object for backwards compatibility
+        user.location = { lat: latitude, lon: longitude };
+        
+        user.locationSynced = true;
+
+        await user.save();
+
+        res.json({ message: "Location synced successfully", profile: user });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

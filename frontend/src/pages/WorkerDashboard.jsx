@@ -24,6 +24,7 @@ export default function WorkerDashboard() {
     const [weatherLoading, setWeatherLoading] = useState(true);
     const [geoError, setGeoError] = useState(null);
     const [eligibility, setEligibility] = useState({ status: 'checking', message: '', canClaim: false });
+    const [highlightSync, setHighlightSync] = useState(false);
 
     const fetchWeatherData = async (lat, lon) => {
         try {
@@ -76,9 +77,9 @@ export default function WorkerDashboard() {
         );
     };
 
-    const checkEligibility = (activePolicy, claims, modeOverride) => {
-        const hasActivePolicy = activePolicy && activePolicy.status === 'Active';
-        const hasClaimedToday = claims.some(c => new Date(c.createdAt).toDateString() === new Date().toDateString());
+    const checkEligibility = (prof, currentActivePolicy, currentClaims, modeOverride) => {
+        const hasActivePolicy = currentActivePolicy && currentActivePolicy.status === 'Active';
+        const hasClaimedToday = currentClaims.some(c => new Date(c.createdAt).toDateString() === new Date().toDateString());
 
         if (!hasActivePolicy) {
             setEligibility({ status: 'Awaiting protection protocol...', message: 'Purchase a plan to enable parametric coverage.', canClaim: false });
@@ -89,8 +90,8 @@ export default function WorkerDashboard() {
         const canSubmit = isModeActive || !hasClaimedToday;
 
         // 🔴 FREEZE SYSTEM CHECK (Requirement #6)
-        if (profile?.isFrozen) {
-            const expiry = new Date(profile.freezeUntil);
+        if (prof?.isFrozen) {
+            const expiry = new Date(prof.freezeUntil);
             setEligibility({ 
                 status: 'Account Restricted', 
                 message: `🚫 Your account is blocked until ${expiry.toLocaleDateString()} at ${expiry.toLocaleTimeString()}. Suspicious activity detected.`, 
@@ -100,11 +101,21 @@ export default function WorkerDashboard() {
         }
 
         // ML Warning Context
-        if (profile?.fraudStatus === 'suspicious') {
+        if (prof?.fraudStatus === 'suspicious') {
             setEligibility({ 
                 status: 'High risk monitoring active', 
                 message: '⚠️ Unusual activity detected. Continued behavior may lead to account restriction.', 
                 canClaim: canSubmit
+            });
+            return;
+        }
+
+        // 📍 LOCATION SYNC CHECK
+        if (!prof?.locationSynced) {
+            setEligibility({ 
+                status: 'Location Sync Required', 
+                message: '📍 Please sync your location once to enable parametric monitoring and claims.', 
+                canClaim: false 
             });
             return;
         }
@@ -132,12 +143,44 @@ export default function WorkerDashboard() {
             setClaims(claimsList);
             
             initWeatherTracking(profileData);
-            checkEligibility(activePol, claimsList, configRes.data.testMode);
+            checkEligibility(profileData, activePol, claimsList, configRes.data.testMode);
         } catch (err) {
             console.error(err);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleLocationSync = () => {
+        if (!navigator.geolocation) {
+            showNotification("Geolocation is not supported by your browser.", "error");
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                try {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const token = localStorage.getItem('token');
+
+                    await axios.post(`${API}/api/users/update-location`, {
+                        latitude: lat,
+                        longitude: lon,
+                    }, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    showNotification("Location synced successfully!", "success");
+                    fetchData(); // Refresh to update locationSynced status
+                } catch (err) {
+                    showNotification("Failed to sync location with server.", "error");
+                }
+            },
+            () => {
+                showNotification("Location permission is required for parametric verification.", "error");
+            }
+        );
     };
 
     useEffect(() => {
@@ -164,11 +207,19 @@ export default function WorkerDashboard() {
     const [activeTab, setActiveTab] = useState(queryParams.get('tab') === 'history' ? 'history' : 'dashboard');
 
     useEffect(() => {
-        const tab = new URLSearchParams(location.search).get('tab');
+        const query = new URLSearchParams(location.search);
+        const tab = query.get('tab');
         if (tab === 'history') {
             setActiveTab('history');
         } else {
             setActiveTab('dashboard');
+        }
+
+        if (query.get('sync_highlight') === 'true') {
+            setHighlightSync(true);
+            setTimeout(() => setHighlightSync(false), 2000);
+            // Clean URL
+            navigate('/dashboard', { replace: true });
         }
     }, [location.search]);
 
@@ -401,10 +452,45 @@ export default function WorkerDashboard() {
                         </div>
                     </div>
 
+                    {/* 📍 One-Time Location Sync Banner */}
+                    {!profile?.locationSynced && (
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ 
+                                scale: highlightSync ? 1.02 : 1, 
+                                opacity: 1,
+                                boxShadow: highlightSync ? "0 0 40px rgba(79, 70, 229, 0.4)" : "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+                            }}
+                            transition={{ duration: 0.3 }}
+                            className={`mb-8 p-6 rounded-[2rem] border transition-all duration-700 relative overflow-hidden group ${
+                                highlightSync ? 'bg-primary/20 border-primary scale-[1.01]' : 'bg-slate-900 border-primary/20'
+                            }`}
+                        >
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -mr-32 -mt-32"></div>
+                            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                                <div className="flex items-center gap-5">
+                                    <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                        <MapPin size={32} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xl font-black text-white tracking-tight">Sync Location for Protection</h4>
+                                        <p className="text-slate-400 text-sm font-medium">Parametric insurance requires a one-time GPS verification of your working area.</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={handleLocationSync}
+                                    className="px-8 py-4 bg-primary text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                                >
+                                    Verify & Sync Current GPS
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+
                     {/* Dashboard Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
                         {/* Last Claim Status */}
-                        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 flex flex-col group hover:shadow-xl transition-all">
+                        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 flex flex-col group hover:shadow-xl transition-all min-h-[400px]">
                             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
                                 <History size={16} className="text-primary" /> Last Claim Status
                             </h4>
@@ -436,7 +522,7 @@ export default function WorkerDashboard() {
                         </div>
 
                         {/* Live Weather Info */}
-                        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 flex flex-col group hover:shadow-xl transition-all relative overflow-hidden">
+                        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 flex flex-col group hover:shadow-xl transition-all relative overflow-hidden min-h-[400px]">
                             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
                                 <CloudLightning size={16} className="text-amber-500" /> Live Parametric Monitor
                             </h4>
@@ -495,7 +581,7 @@ export default function WorkerDashboard() {
                         </div>
 
                         {/* Policy Details */}
-                        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 flex flex-col group hover:shadow-xl transition-all">
+                        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 flex flex-col group hover:shadow-xl transition-all min-h-[400px]">
                             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
                                 <ShieldCheck size={16} className="text-green-500" /> Policy Blueprint
                             </h4>

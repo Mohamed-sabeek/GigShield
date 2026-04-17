@@ -31,6 +31,13 @@ router.post('/trigger', auth, async (req, res) => {
             await user.save();
         }
 
+        // ✅ PART 3: CLAIM VALIDATION (BACKEND)
+        if (!user.locationSynced) {
+            return res.status(403).json({
+                message: "📍 Location Sync Required. Please sync your location from the dashboard before making a claim."
+            });
+        }
+
         // ✅ PART 7: FREEZE SYSTEM CHECK (Requirement #6)
         if (user.isFrozen && Date.now() < new Date(user.freezeUntil).getTime()) {
             return res.status(403).json({
