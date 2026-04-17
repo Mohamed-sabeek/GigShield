@@ -145,8 +145,8 @@ router.post('/trigger', auth, async (req, res) => {
         // 2. Repeated rejection
         const recentRejectedClaimsCount = recentClaims.slice(0, 5).filter(c => c.status.toLowerCase() === 'rejected').length;
         if (recentRejectedClaimsCount >= 3) {
-            scoreIncrease += 25;
-            breakdown.push(`Repeated Rejections (${recentRejectedClaimsCount}) +25`);
+            scoreIncrease += 15;
+            breakdown.push(`Repeated Rejections (${recentRejectedClaimsCount}) +15`);
         }
 
         // 3. High frequency
@@ -156,18 +156,21 @@ router.post('/trigger', auth, async (req, res) => {
             createdAt: { $gte: tenMinutesAgo }
         });
         if (claimsInLast10Minutes >= 5) {
-            scoreIncrease += 30;
-            breakdown.push(`High Frequency (${claimsInLast10Minutes} in 10m) +30`);
+            scoreIncrease += 20;
+            breakdown.push(`High Frequency (${claimsInLast10Minutes} in 10m) +20`);
         }
 
         // 4. Same pattern repetition
         if (recentClaims.length >= 2) {
             const sameTypeCount = recentClaims.slice(0, 3).filter(c => c.disruptionType === disruptionType).length;
             if (sameTypeCount >= 2) {
-                scoreIncrease += 15;
-                breakdown.push("Pattern Repetition +15");
+                scoreIncrease += 10;
+                breakdown.push("Pattern Repetition +10");
             }
         }
+
+        // ✅ PART 2: LIMIT MAX SCORE PER REQUEST
+        scoreIncrease = Math.min(scoreIncrease, 20);
 
         // ✅ Update user fraud score (Additive, NOT reset)
         latestUser.fraudScore = (latestUser.fraudScore || 0) + scoreIncrease;
