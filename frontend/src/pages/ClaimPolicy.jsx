@@ -349,9 +349,14 @@ export default function ClaimPolicy() {
                                 </div>
                             ))}
                         </div>
-                        <p className="mt-8 text-[9px] font-bold text-slate-600 uppercase tracking-widest leading-relaxed">
-                            Claims are processed automatically using parametric rules synced with OpenWeather global mesh.
-                        </p>
+                        <div className="space-y-4">
+                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
+                                <span className="text-primary mr-1 italic">Notice:</span> Claims are processed automatically using parametric rules synced with OpenWeather global mesh. Payouts are triggered only when environmental thresholds are met.
+                            </p>
+                            <p className="text-[8px] font-black text-red-400 uppercase tracking-tight p-3 bg-red-400/5 rounded-2xl border border-red-400/10">
+                                ⚠ Multiple claims are monitored by an AI-based fraud detection system. Suspicious activity may result in account suspension.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

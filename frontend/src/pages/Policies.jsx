@@ -125,7 +125,7 @@ export default function Policies() {
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-slate-500 font-medium">Claim Limit</span>
-                                <span className="font-bold text-slate-800">1 claim per week</span>
+                                <span className="font-bold text-slate-800 text-sm">1 claim per day (max 7 per policy)</span>
                             </div>
                         </div>
 
@@ -155,12 +155,13 @@ export default function Policies() {
                     <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                         <Shield className="text-primary" /> Policy Rules & Guidelines
                     </h3>
-                    <ul className="space-y-3">
+                    <ul className="space-y-3 mb-6">
                         {[
-                            "Only 1 claim per policy",
-                            "Claim requires GPS verification",
-                            "Weather API validation required",
-                            "Policy valid for 7 days only"
+                            "1 claim allowed per day during policy duration",
+                            "Claim requires GPS-based location verification",
+                            "Claims are validated using real-time weather API data",
+                            "Policy valid for 7 days from activation",
+                            "Payouts are triggered only when weather thresholds are met"
                         ].map((rule, id) => (
                             <li key={id} className="flex items-start gap-3 text-sm text-slate-600 font-medium">
                                 <div className="w-5 h-5 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-primary text-xs font-black flex-shrink-0 mt-0.5">
@@ -170,6 +171,20 @@ export default function Policies() {
                             </li>
                         ))}
                     </ul>
+
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                        <p className="text-[11px] text-slate-500 font-bold leading-relaxed">
+                            <span className="text-slate-900 font-black uppercase tracking-widest mr-1">Note:</span>
+                            Claims are approved only when real-world environmental conditions (rainfall, temperature, etc.) meet predefined thresholds.
+                        </p>
+                        
+                        <div className="flex items-start gap-3 p-3 bg-red-50 rounded-xl border border-red-100">
+                             <AlertCircle size={14} className="text-red-600 mt-0.5" />
+                             <p className="text-[10px] text-red-700 font-bold leading-tight">
+                                ⚠ Multiple claims are monitored by an AI-based fraud detection system. Suspicious activity may result in warnings or account suspension.
+                             </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </motion.div>

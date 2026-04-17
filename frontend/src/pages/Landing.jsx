@@ -53,26 +53,19 @@ export default function Landing() {
                             </span>
                         </h1>
 
-                        <p className="max-w-2xl mx-auto text-lg md:text-2xl text-slate-500 font-medium leading-relaxed mb-16 px-4">
+                        <p className="max-w-2xl mx-auto text-lg md:text-2xl text-slate-500 font-medium leading-relaxed mb-6 px-4">
                             Shielding Chennai & Coimbatore gig workers from
                             <span className="text-slate-900 font-bold italic"> Monsoon floods & Heat waves. </span>
-                            No claims, just instant payouts to your UPI.
+                            AI-verified claims with instant payout processing based on real-time environmental data.
+                        </p>
+                        <p className="text-[12px] text-slate-900 font-black uppercase tracking-widest mb-16 italic">
+                            Payouts are triggered only when real-world environmental conditions are verified.
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-8 px-4">
                             <Link to={token ? dashboardLink : "/signup"} className="group w-full sm:w-auto px-10 py-5 bg-primary text-white text-xl font-black rounded-[24px] hover:bg-blue-700 hover:scale-105 transition-all shadow-2xl shadow-primary/40 flex items-center justify-center gap-3 active:scale-95">
                                 {token ? 'Go to Dashboard' : 'Shield Your Earnings Now'} <ArrowRight size={24} className="group-hover:translate-x-1 transition-transform" />
                             </Link>
-                            <div className="flex -space-x-3 items-center">
-                                {[1, 2, 3, 4].map(i => (
-                                    <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm">
-                                        <img src={`https://i.pravatar.cc/150?u=${i + 20}`} alt="User" className="w-full h-full object-cover" />
-                                    </div>
-                                ))}
-                                <div className="pl-6 text-slate-500 font-black text-sm">
-                                    <span className="text-slate-900">8.5k+</span> TN Workers Shielded
-                                </div>
-                            </div>
                         </div>
 
                         {/* Visual Separator / Stats Card */}
@@ -81,10 +74,10 @@ export default function Landing() {
                             <div className="bg-white/90 backdrop-blur-2xl border border-white rounded-[48px] p-10 md:p-12 shadow-2xl overflow-hidden grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 group">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                                 {[
-                                    { label: 'TN Districts Active', value: '12+', icon: <Globe size={20} className="text-cyan-500" /> },
-                                    { label: 'Avg Payout Time', value: '45 Mins', icon: <Zap size={20} className="text-amber-500" /> },
+                                    { label: 'TN Districts Covered', value: 'All 38', icon: <Globe size={20} className="text-cyan-500" /> },
+                                    { label: 'Claim Validation', value: 'Instant', icon: <Zap size={20} className="text-amber-500" /> },
                                     { label: 'Weather Nodes', value: '150+', icon: <Cpu size={20} className="text-green-500" /> },
-                                    { label: 'Shielded Payouts', value: '₹2.8M+', icon: <Wallet size={20} className="text-primary" /> }
+                                    { label: 'Simulated Payouts', value: 'Processed', icon: <Wallet size={20} className="text-primary" /> }
                                 ].map((stat, i) => (
                                     <div key={i} className="relative z-10 flex flex-col items-center group-hover:scale-105 transition-transform duration-500">
                                         <div className="mb-4 p-3 bg-slate-50 rounded-2xl group-hover:bg-white group-hover:shadow-md transition-all">
@@ -182,13 +175,13 @@ export default function Landing() {
                                     icon: <ShieldAlert className="text-blue-600" size={32} />,
                                     title: 'Monsoon Flooding Shield',
                                     color: 'bg-blue-50',
-                                    desc: 'Chennai rains can be unpredictable. When rainfall exceeds 50mm in your working zone, your daily wage shield triggers automatically.'
+                                    desc: 'Chennai rains can be unpredictable. When rainfall exceeds a predefined threshold, eligible claims are validated and processed based on real-time weather conditions.'
                                 },
                                 {
                                     icon: <Zap className="text-amber-500" size={32} />,
                                     title: 'Agni Nakshatram Heat Shield',
                                     color: 'bg-amber-50',
-                                    desc: 'Protecting you from extreme heat waves. Payouts are initiated when temperatures cross 42°C, ensuring your health comes first.'
+                                    desc: 'Protecting you from extreme heat waves. Payouts are initiated when temperatures cross critical thresholds, ensuring your health comes first.'
                                 },
                                 {
                                     icon: <ShieldCheck className="text-green-600" size={32} />,
@@ -207,6 +200,13 @@ export default function Landing() {
                                 </div>
                             ))}
                         </div>
+
+                        <div className="mt-16 p-8 bg-blue-50/50 rounded-3xl border border-blue-100 flex items-center justify-center gap-4 animate-fade-in shadow-sm text-center">
+                             <ShieldCheck className="text-primary flex-shrink-0" size={24} />
+                             <p className="text-[10px] md:text-sm font-black uppercase tracking-widest text-slate-500 leading-relaxed">
+                                AI-powered fraud detection ensures only valid claims are approved and prevents system misuse.
+                             </p>
+                        </div>
                     </div>
                 </section>
 
@@ -221,9 +221,9 @@ export default function Landing() {
                                 <h2 className="text-5xl md:text-7xl font-black text-slate-900 mb-10 tracking-tighter leading-none">Simplicity <br />In 3 Steps</h2>
                                 <div className="space-y-12">
                                     {[
-                                        { step: '01', title: 'Connect Your Profile', desc: 'Securely link your delivery or ride-sharing profile using your Aadhar or Registered Worker ID.' },
-                                        { step: '02', title: 'Activate TN Shield', desc: 'Choose your protection window. Premiums are adjusted based on real-time TN weather forecasts.' },
-                                        { step: '03', title: 'Instant UPI Payout', desc: 'If our sensors detect a monsoon or heat trigger, your payout lands in your UPI wallet in minutes.' }
+                                        { step: '01', title: 'Connect Your Profile', desc: 'Securely link your worker profile and sync your working location for parametric anchoring.' },
+                                        { step: '02', title: 'Activate TN Shield', desc: 'Secure your protection window with an affordable fixed premium for weekly coverage.' },
+                                        { step: '03', title: 'Verified Internal Payout', desc: 'Submit a claim → System validates using weather data and AI fraud detection → Approved payouts are processed instantly.' }
                                     ].map((s, i) => (
                                         <div key={i} className="flex gap-8 group">
                                             <div className="text-5xl font-black text-slate-100 group-hover:text-primary/20 transition-colors duration-500 leading-none">{s.step}</div>
@@ -281,7 +281,7 @@ export default function Landing() {
 
                             <h2 className="text-5xl md:text-8xl font-black text-white mb-10 tracking-tighter leading-none relative z-10">Shield Your <br /> Daily Wages</h2>
                             <p className="text-blue-100 text-xl md:text-2xl font-medium max-w-2xl mb-16 relative z-10 opacity-90 leading-relaxed">
-                                Don't let the Chennai heat or monsoons steal your wages. Join 8,500+ TN workers today.
+                                Don't let the Chennai heat or monsoons steal your wages. Join the protection shield today.
                             </p>
 
                             <div className="flex flex-col sm:flex-row gap-6 relative z-10 w-full justify-center px-4">

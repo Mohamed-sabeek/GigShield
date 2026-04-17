@@ -3,7 +3,7 @@ import api from '../api';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AuthContext } from '../context/AuthContext';
-import { Shield, Users, FileText, CheckCircle, Search, LogOut, TrendingUp, History, Trash2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Shield, Users, FileText, CheckCircle, Search, LogOut, TrendingUp, History, Trash2, AlertTriangle, ShieldCheck, Wallet, Banknote, BarChart3 } from 'lucide-react';
 
 export default function AdminDashboard() {
     const { logout } = useContext(AuthContext);
@@ -15,17 +15,20 @@ export default function AdminDashboard() {
     const [statusFilter, setStatusFilter] = useState('All');
     const [sortBy, setSortBy] = useState('earnings');
     const [testMode, setTestMode] = useState(false);
+    const [financialData, setFinancialData] = useState(null);
 
     const fetchData = async () => {
         try {
-            const [statsRes, workersRes, configRes] = await Promise.all([
+            const [statsRes, workersRes, configRes, financialRes] = await Promise.all([
                 api.get(`/api/admin/dashboard`),
                 api.get(`/api/admin/workers`),
-                api.get(`/api/config`)
+                api.get(`/api/config`),
+                api.get(`/api/admin/financial-overview`)
             ]);
             setStats(statsRes.data);
             setWorkers(workersRes.data);
             setTestMode(configRes.data.testMode);
+            setFinancialData(financialRes.data);
         } catch (err) {
             console.error(err);
         } finally {
@@ -156,6 +159,63 @@ export default function AdminDashboard() {
                                 <button onClick={() => navigate('/admin/claims-monitor')} className="bg-primary hover:bg-white text-slate-900 font-black py-4 px-10 rounded-2xl transition-all flex items-center gap-2 uppercase tracking-widest text-xs">
                                      Monitor Claims <History size={18} />
                                 </button>
+                            </div>
+                        </div>
+                   </div>
+
+                   {/* Financial Sustainability Section */}
+                   <div className="pt-10">
+                        <div className="flex items-center gap-3 mb-8">
+                             <div className="h-px flex-1 bg-slate-100"></div>
+                             <h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">System Sustainability</h2>
+                             <div className="h-px flex-1 bg-slate-100"></div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:scale-110 transition-transform">
+                                        <Wallet size={24} />
+                                    </div>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 py-1 bg-slate-50 rounded-lg">Assets</span>
+                                </div>
+                                <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Total Premium</h3>
+                                <div className="text-3xl font-black text-slate-900">₹{financialData?.totalPremium?.toLocaleString()}</div>
+                                <div className="mt-2 text-[10px] font-bold text-slate-400">Calculated from {financialData?.totalUsers} workers</div>
+                            </div>
+
+                            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-3 bg-red-50 text-red-600 rounded-2xl group-hover:scale-110 transition-transform">
+                                        <Banknote size={24} />
+                                    </div>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 py-1 bg-slate-50 rounded-lg">Liabilities</span>
+                                </div>
+                                <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Total Payouts</h3>
+                                <div className="text-3xl font-black text-slate-900">₹{financialData?.totalPayout?.toLocaleString()}</div>
+                                <div className="mt-2 text-[10px] font-bold text-slate-400">All approved insurance claims</div>
+                            </div>
+
+                            <div className={`p-6 rounded-3xl border shadow-sm hover:shadow-md transition-all group ${
+                                (financialData?.profit || 0) >= 0 ? 'bg-green-50/50 border-green-100' : 'bg-red-50/50 border-red-100'
+                            }`}>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className={`p-3 rounded-2xl group-hover:scale-110 transition-transform ${
+                                        (financialData?.profit || 0) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                    }`}>
+                                        <BarChart3 size={24} />
+                                    </div>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 py-1 bg-white/50 rounded-lg">P&L</span>
+                                </div>
+                                <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Net Sustainability</h3>
+                                <div className={`text-3xl font-black ${
+                                    (financialData?.profit || 0) >= 0 ? 'text-green-700' : 'text-red-700'
+                                }`}>
+                                    ₹{financialData?.profit?.toLocaleString()}
+                                </div>
+                                <div className="mt-2 text-[10px] font-bold text-slate-400">
+                                    {(financialData?.profit || 0) >= 0 ? 'Operating in surplus' : 'Operating in deficit'}
+                                </div>
                             </div>
                         </div>
                    </div>

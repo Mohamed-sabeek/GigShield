@@ -113,15 +113,46 @@ router.get('/workers', auth, async (req, res) => {
     }
 });
 
-// @route   DELETE api/admin/claim/:id
-router.delete('/claim/:id', auth, async (req, res) => {
+// @route   GET api/admin/financial-overview
+router.get('/financial-overview', auth, async (req, res) => {
     try {
-        if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Not authorized' });
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ msg: 'Not authorized as admin' });
+        }
 
-        await Claim.findByIdAndDelete(req.params.id);
-        res.json({ msg: 'Claim record deleted' });
+        // 1. Total workers (who pay premium)
+        const totalUsers = await User.countDocuments({ role: 'worker' });
+
+        // 2. Premium per user (fixed ₹20 as per project specs)
+        const weeklyPremium = 20;
+
+        // 3. Total premium collected
+        const totalPremium = totalUsers * weeklyPremium;
+
+        // 4. Total payout (approved claims only)
+        const payoutResult = await Claim.aggregate([
+            { $match: { status: "Approved" } },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: "$payoutAmount" }
+                }
+            }
+        ]);
+
+        const totalPayout = payoutResult[0]?.total || 0;
+
+        // 5. Profit / Loss
+        const profit = totalPremium - totalPayout;
+
+        res.json({
+            totalUsers,
+            totalPremium,
+            totalPayout,
+            profit
+        });
     } catch (err) {
-        console.error(err.message);
+        console.error("Financial overview error:", err.message);
         res.status(500).send('Server Error');
     }
 });
