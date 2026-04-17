@@ -99,13 +99,19 @@ router.post('/resend-otp', async (req, res) => {
 
         if (user.isVerified) return res.status(400).json({ msg: 'User already verified' });
 
-        const otp = generateOTP();
+        // Step 1: Generate new OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Step 2 & 3: Reset status and set new expiry (5 minutes)
         user.otp = otp;
         user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
         await user.save();
 
+        // Step 4: Send OTP email
         await sendOTP(email, otp);
-        res.json({ msg: 'A new verification code has been sent to your email' });
+
+        // Step 5: Response
+        res.json({ message: "New OTP sent successfully" });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');
