@@ -15,7 +15,7 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://your-vercel-app.vercel.app" // ⚠️ Replace with your actual Vercel domain!
+    "https://gig-shield-rho.vercel.app"
   ],
   credentials: true
 }));
