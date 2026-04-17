@@ -214,78 +214,91 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
-                                    {filteredWorkers.map(worker => (
-                                        <tr key={worker.id} className="hover:bg-slate-50/50 transition-colors group">
-                                            <td className="px-8 py-6">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-sm group-hover:bg-primary group-hover:text-slate-900 transition-all">
-                                                        {worker.name?.charAt(0)}
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-black text-slate-900 text-sm flex items-center gap-2">
-                                                            {worker.name}
-                                                            <span className={`text-[8px] px-1.5 py-0.5 rounded border ${worker.platform === 'Swiggy' ? 'text-orange-500 border-orange-100' : 'text-blue-500 border-blue-100'}`}>
-                                                                {worker.platform}
-                                                            </span>
+                                    {filteredWorkers.length > 0 ? (
+                                        filteredWorkers.map(worker => (
+                                            <tr key={worker.id} className="hover:bg-slate-50/50 transition-colors group">
+                                                {/* existing tr content */}
+                                                <td className="px-8 py-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-sm group-hover:bg-primary group-hover:text-slate-900 transition-all">
+                                                            {worker.name?.charAt(0)}
                                                         </div>
-                                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight italic">{worker.city}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-6 text-center">
-                                                <div className="flex items-center justify-center gap-3">
-                                                    <div className="text-center">
-                                                        <div className="text-xs font-black text-slate-900">{worker.claimStats?.total || 0}</div>
-                                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Total</div>
-                                                    </div>
-                                                    <div className="w-[1px] h-6 bg-slate-100"></div>
-                                                    <div className="text-center">
-                                                        <div className="text-xs font-black text-green-600">{worker.claimStats?.approved || 0}</div>
-                                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Apprv</div>
-                                                    </div>
-                                                    <div className="w-[1px] h-6 bg-slate-100"></div>
-                                                    <div className="text-center">
-                                                        <div className="text-xs font-black text-red-500">{worker.claimStats?.rejected || 0}</div>
-                                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Rej</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                             <td className="px-8 py-6">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`p-2 rounded-xl ${
-                                                        worker.fraudStatus === 'high_risk' ? 'bg-red-50 text-red-600' :
-                                                        worker.fraudStatus === 'suspicious' ? 'bg-orange-50 text-orange-600' :
-                                                        'bg-green-50 text-green-600'
-                                                    }`}>
-                                                        {worker.fraudStatus === 'high_risk' || worker.isFrozen ? <AlertTriangle size={16} /> : <ShieldCheck size={16} />}
-                                                    </div>
-                                                    <div>
-                                                        <div className="flex items-center gap-1.5 font-black text-[10px] uppercase tracking-wider">
-                                                            Score: <span className={
-                                                                worker.fraudScore >= 80 ? 'text-red-500' :
-                                                                worker.fraudScore >= 50 ? 'text-orange-500' :
-                                                                'text-green-600'
-                                                            }>{worker.fraudScore || 0}</span>
-                                                            {worker.isFrozen && <span className="text-[8px] bg-red-100 text-red-600 px-1 rounded ml-1">FROZEN</span>}
+                                                        <div>
+                                                            <div className="font-black text-slate-900 text-sm flex items-center gap-2">
+                                                                {worker.name}
+                                                                <span className={`text-[8px] px-1.5 py-0.5 rounded border ${worker.platform === 'Swiggy' ? 'text-orange-500 border-orange-100' : 'text-blue-500 border-blue-100'}`}>
+                                                                    {worker.platform}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight italic">{worker.city}</div>
                                                         </div>
-                                                        <div className={`text-[9px] font-bold uppercase ${
-                                                            worker.fraudStatus === 'high_risk' || worker.isFrozen ? 'text-red-600 animate-pulse' :
-                                                            worker.fraudStatus === 'suspicious' ? 'text-orange-600' :
-                                                            'text-slate-400'
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6 text-center">
+                                                    <div className="flex items-center justify-center gap-3">
+                                                        <div className="text-center">
+                                                            <div className="text-xs font-black text-slate-900">{worker.claimStats?.total || 0}</div>
+                                                            <div className="text-[8px] font-bold text-slate-400 uppercase">Total</div>
+                                                        </div>
+                                                        <div className="w-[1px] h-6 bg-slate-100"></div>
+                                                        <div className="text-center">
+                                                            <div className="text-xs font-black text-green-600">{worker.claimStats?.approved || 0}</div>
+                                                            <div className="text-[8px] font-bold text-slate-400 uppercase">Apprv</div>
+                                                        </div>
+                                                        <div className="w-[1px] h-6 bg-slate-100"></div>
+                                                        <div className="text-center">
+                                                            <div className="text-xs font-black text-red-500">{worker.claimStats?.rejected || 0}</div>
+                                                            <div className="text-[8px] font-bold text-slate-400 uppercase">Rej</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`p-2 rounded-xl ${
+                                                            worker.fraudStatus === 'high_risk' ? 'bg-red-50 text-red-600' :
+                                                            worker.fraudStatus === 'suspicious' ? 'bg-orange-50 text-orange-600' :
+                                                            'bg-green-50 text-green-600'
                                                         }`}>
-                                                            {worker.isFrozen ? 'Frozen until ' + new Date(worker.freezeUntil).toLocaleDateString() : worker.fraudStatus?.replace('_', ' ')}
+                                                            {worker.fraudStatus === 'high_risk' || worker.isFrozen ? <AlertTriangle size={16} /> : <ShieldCheck size={16} />}
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex items-center gap-1.5 font-black text-[10px] uppercase tracking-wider">
+                                                                Score: <span className={
+                                                                    worker.fraudScore >= 80 ? 'text-red-500' :
+                                                                    worker.fraudScore >= 50 ? 'text-orange-500' :
+                                                                    'text-green-600'
+                                                                }>{worker.fraudScore || 0}</span>
+                                                                {worker.isFrozen && <span className="text-[8px] bg-red-100 text-red-600 px-1 rounded ml-1">FROZEN</span>}
+                                                            </div>
+                                                            <div className={`text-[9px] font-bold uppercase ${
+                                                                worker.fraudStatus === 'high_risk' || worker.isFrozen ? 'text-red-600 animate-pulse' :
+                                                                worker.fraudStatus === 'suspicious' ? 'text-orange-600' :
+                                                                'text-slate-400'
+                                                            }`}>
+                                                                {worker.isFrozen ? 'Frozen until ' + new Date(worker.freezeUntil).toLocaleDateString() : worker.fraudStatus?.replace('_', ' ')}
+                                                            </div>
                                                         </div>
                                                     </div>
+                                                </td>
+                                                <td className="px-8 py-6 text-right">
+                                                    <div className="text-sm font-black text-slate-900 bg-slate-50 inline-block px-3 py-1 rounded-lg border border-slate-100">
+                                                        ₹{(worker.claimStats?.totalEarnings || 0).toLocaleString()}
+                                                    </div>
+                                                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-1">Paid Out</div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="4" className="px-8 py-20 text-center">
+                                                <div className="flex flex-col items-center gap-2 opacity-30">
+                                                    <Search size={48} className="text-slate-400 mb-2" />
+                                                    <p className="text-sm font-black uppercase tracking-widest text-slate-500">No workers match this filter</p>
+                                                    <p className="text-[10px] font-bold text-slate-400">Try adjusting your search or status selection</p>
                                                 </div>
-                                             </td>
-                                            <td className="px-8 py-6 text-right">
-                                                <div className="text-sm font-black text-slate-900 bg-slate-50 inline-block px-3 py-1 rounded-lg border border-slate-100">
-                                                    ₹{(worker.claimStats?.totalEarnings || 0).toLocaleString()}
-                                                </div>
-                                                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-1">Paid Out</div>
                                             </td>
                                         </tr>
-                                    ))}
+                                    )}
                                 </tbody>
                             </table>
                         </div>

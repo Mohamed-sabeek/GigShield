@@ -35,8 +35,18 @@ router.post('/create', [auth, checkFreeze], async (req, res) => {
     try {
         const { riskLevel, riskScore, premium, coverage, planName } = req.body;
 
-        // Inactivate any existing policies
-        await Policy.updateMany({ userId: req.user.id, status: 'Active' }, { status: 'Expired' });
+        // Step 1: Prevent duplicate activation
+        const existingPolicy = await Policy.findOne({
+            userId: req.user.id,
+            status: 'Active',
+            endDate: { $gt: new Date() } // Only count if not expired
+        });
+
+        if (existingPolicy) {
+            return res.status(400).json({
+                msg: 'You already have an active policy'
+            });
+        }
 
         const newPolicy = new Policy({
             userId: req.user.id,

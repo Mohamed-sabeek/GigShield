@@ -13,7 +13,16 @@ router.get('/dashboard', auth, async (req, res) => {
         }
 
         const totalWorkers = await User.countDocuments({ role: 'worker' });
-        const activePoliciesCount = await Policy.countDocuments({ status: 'Active' });
+        const allWorkers = await User.find({ role: 'worker' }).select('_id');
+        const workerIds = allWorkers.map(w => w._id);
+
+        // Fix dashboard count: Count active policies belonging to verified workers only
+        const activePoliciesCount = await Policy.countDocuments({ 
+            userId: { $in: workerIds },
+            status: "Active",
+            endDate: { $gt: new Date() } 
+        });
+
         const totalClaims = await Claim.countDocuments();
 
         const approvedClaims = await Claim.find({ status: 'Approved' });
@@ -91,7 +100,9 @@ router.get('/workers', auth, async (req, res) => {
                 status: policy ? 'Active Policy' : 'Unprotected',
                 claimStats: claimStats,
                 fraudScore: worker.fraudScore || 0,
-                fraudStatus: worker.fraudStatus || 'safe'
+                fraudStatus: worker.fraudStatus || 'safe',
+                isFrozen: worker.isFrozen || false,
+                freezeUntil: worker.freezeUntil
             };
         }));
 
