@@ -1,6 +1,7 @@
 # 🚀 GigShield – AI-Powered Parametric Insurance for Gig Workers
+> 🚀 Real-time insurance powered by AI, weather data, and automated claim validation.
 
-GigShield is a production-ready AI-driven parametric insurance platform designed to protect gig economy workers from income loss caused by real-world disruptions such as floods, extreme weather, and environmental hazards. 
+GigShield is a prototype AI-driven parametric insurance platform designed to protect gig economy workers from income loss caused by real-world disruptions such as floods, extreme weather, and environmental hazards. 
 
 Unlike traditional insurance systems, GigShield uses a **hybrid parametric model** that combines user-triggered claims with automated machine learning validation and real-time environmental data.
 
@@ -13,6 +14,19 @@ Unlike traditional insurance systems, GigShield uses a **hybrid parametric model
 
 ---
 
+## 🎥 Demo Video
+
+[Watch Demo](https://drive.google.com/file/d/14nk4KxGK3Ml9_4IBjpVhNuN_2Pv8V5GC/view?usp=sharing)
+
+---
+
+## 🎤 Pitch Deck
+
+[View Pitch Deck](https://drive.google.com/file/d/1w1GFzkQD2Nb8KMMaJqsALgBHuxEcqa5U/view?usp=sharing)
+
+---
+
+
 # 💡 Solution Overview
 
 GigShield introduces a state-of-the-art **Modern Parametric Model**:
@@ -22,6 +36,11 @@ Worker submits a claim → System validates using real-time environmental data a
 ✔ No complex manual paperwork  
 ✔ Instant internal payout processing  
 ✔ Transparent validation logic  
+✔ AI-powered fraud detection ensures only valid claims are approved and prevents system misuse.
+
+### 🔍 Claim Validation Logic
+
+$$Approval = WeatherValid \land LocationVerified \land FraudScoreSafe$$
 
 ---
 
@@ -107,6 +126,15 @@ To ensure system sustainability and prevent pool exhaustion:
 
 ---
 
+# 🚀 Why GigShield is Different
+
+*   **Hybrid Intelligence**: Combines parametric insurance triggers with AI behavioral fraud detection.
+*   **Hyper-Local Precision**: Real-time validation using live weather APIs anchored to verified GPS nodes.
+*   **Frictionless Settlement**: Fully automated claim approval system with instant internal wallet updates.
+*   **Operational Integrity**: Integrated financial sustainability tracking and loss-ratio analytics for long-term viability.
+
+---
+
 # 🏗️ System Architecture
 
 ```text
@@ -127,18 +155,20 @@ Frontend (React + Vite)  <--->  Backend (Node + Express)  <--->  ML Engine (Pyth
 
 ---
 
-# 👨‍💻 Author
+# 👨‍💻 Team
 
-**Mohamed Sabeek**  
-Full Stack Developer | AI Systems Builder  
-
-- **GitHub**: [https://github.com/Mohamed-sabeek](https://github.com/Mohamed-sabeek)  
-- **Project**: GigShield – AI-powered parametric insurance platform
-
-Designed and developed an end-to-end system integrating real-time environmental validation, AI fraud detection, and financial sustainability analytics.
+*   **Mohamed Sabeek H** (Full Stack & AI)
+*   **Mohamed Asif I**
+*   **Deva S**
+*   **Monish R K**
+*   **Karthik Vishaal M**
 
 ---
 
 # 📜 License
 
 Educational and prototype use only.
+
+---
+
+**GigShield is not just a concept — it is a fully working prototype with real-time validation, deployed frontend and backend, and an integrated ML decision system.**
