@@ -88,23 +88,13 @@ export default function WorkerDashboard() {
         const isModeActive = modeOverride !== undefined ? modeOverride : testMode;
         const canSubmit = isModeActive || !hasClaimedToday;
 
-        // 🔴 FREEZE SYSTEM CHECK (Requirement #6)
+        // 🔴 FREEZE SYSTEM CHECK
         if (prof?.isFrozen) {
             const expiry = new Date(prof.freezeUntil);
             setEligibility({ 
                 status: 'Account Restricted', 
                 message: `🚫 Your account is blocked until ${expiry.toLocaleDateString()} at ${expiry.toLocaleTimeString()}. Suspicious activity detected.`, 
                 canClaim: false 
-            });
-            return;
-        }
-
-        // ML Warning Context
-        if (prof?.fraudStatus === 'suspicious') {
-            setEligibility({ 
-                status: 'High risk monitoring active', 
-                message: '⚠️ Unusual activity detected. Continued behavior may lead to account restriction.', 
-                canClaim: canSubmit
             });
             return;
         }
@@ -119,7 +109,23 @@ export default function WorkerDashboard() {
             return;
         }
 
-        setEligibility({ status: 'Eligible for claim', message: 'Parametric triggers are monitoring your area.', canClaim: canSubmit });
+        // ⏳ CLAIM FREQUENCY CHECK (Requirement: 1 claim per 24 hours)
+        if (hasClaimedToday && !isModeActive) {
+            const lastClaimDate = new Date(currentClaims[0].createdAt);
+            const nextClaimDate = new Date(lastClaimDate.getTime() + 24 * 60 * 60 * 1000);
+            const diffMs = nextClaimDate - new Date();
+            const hoursLeft = Math.ceil(diffMs / (1000 * 60 * 60));
+
+            setEligibility({ 
+                status: 'Claim used today', 
+                message: `✔ Next claim available in ${hoursLeft} hrs. Regular frequency: 1 claim per 24 hours.`, 
+                canClaim: false,
+                hoursRemaining: hoursLeft
+            });
+            return;
+        }
+
+        setEligibility({ status: '✔ Claim available today', message: 'Parametric triggers are monitoring your area.', canClaim: canSubmit });
     };
 
     const fetchData = async () => {
@@ -423,11 +429,11 @@ export default function WorkerDashboard() {
                         <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
                             <div className="flex-1 text-center md:text-left">
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 mb-6 group transition-all hover:bg-white/20">
-                                    <div className={`w-2 h-2 rounded-full animate-pulse ${eligibility.canClaim ? 'bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : 'bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.5)]'}`}></div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-white/80">{eligibility.status}</span>
+                                    <div className={`w-2 h-2 rounded-full animate-pulse ${eligibility.canClaim ? 'bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : eligibility.status === 'Claim used today' ? 'bg-orange-400' : 'bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.5)]'}`}></div>
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${eligibility.status === '✔ Claim available today' ? 'text-green-400' : 'text-white/80'}`}>{eligibility.status}</span>
                                 </div>
                                 <h2 className="text-3xl font-black mb-4 tracking-tight leading-tight">Experiencing work disruption due to weather?</h2>
-                                <p className="text-slate-400 text-lg mb-8 max-w-lg leading-relaxed">{eligibility.message}</p>
+                                <p className={`text-lg mb-8 max-w-lg leading-relaxed ${eligibility.status === 'Claim used today' ? 'text-orange-300' : 'text-slate-400'}`}>{eligibility.message}</p>
                                 
                                 <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                                     <button 

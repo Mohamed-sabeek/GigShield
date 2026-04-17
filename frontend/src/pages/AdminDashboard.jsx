@@ -73,6 +73,7 @@ export default function AdminDashboard() {
                                 w.platform?.toLowerCase().includes(searchTerm.toLowerCase());
             
             const matchesStatus = statusFilter === 'All' || 
+                                (statusFilter === 'Fair' && w.fraudStatus === 'safe' && !w.isFrozen) ||
                                 (statusFilter === 'Frozen' && w.isFrozen) ||
                                 (statusFilter === 'Suspicious' && w.fraudStatus === 'suspicious') ||
                                 (statusFilter === 'High Risk' && w.fraudStatus === 'high_risk');
@@ -226,7 +227,7 @@ export default function AdminDashboard() {
                 <div className="space-y-6 animate-fade-in">
                     <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
                         <div className="flex flex-wrap gap-2">
-                            {['All', 'Frozen', 'Suspicious', 'High Risk'].map(f => (
+                            {['All', 'Fair', 'Frozen', 'Suspicious', 'High Risk'].map(f => (
                                 <button 
                                     key={f}
                                     onClick={() => setStatusFilter(f)}
