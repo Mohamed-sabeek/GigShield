@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { 
     LayoutDashboard, History, Shield, LogOut, ShieldAlert, CheckCircle, 
     IndianRupee, ShieldCheck, AlertCircle, CloudLightning, User, MapPin, 
-    Wind, Waves, CloudRain, Zap, Calendar, ArrowRight, XCircle, Sun, Cloud
+    Wind, Waves, CloudRain, Zap, Calendar, ArrowRight, XCircle, Sun, Cloud, Info
 } from 'lucide-react';
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -17,6 +17,7 @@ export default function WorkerDashboard() {
     const [recommendedPolicy, setRecommendedPolicy] = useState(null);
     const [activePolicy, setActivePolicy] = useState(null);
     const [claims, setClaims] = useState([]);
+    const [testMode, setTestMode] = useState(false);
     const [loading, setLoading] = useState(true);
     const [notification, setNotification] = useState(null);
     const [weather, setWeather] = useState(null);
@@ -75,43 +76,63 @@ export default function WorkerDashboard() {
         );
     };
 
-    const checkEligibility = (activePol, claimsList) => {
-        if (!activePol || new Date(activePol.endDate) < new Date()) {
-            setEligibility({ status: 'No active policy', message: 'Purchase a policy to become eligible for claims.', canClaim: false });
+    const checkEligibility = (activePolicy, claims, modeOverride) => {
+        const hasActivePolicy = activePolicy && activePolicy.status === 'Active';
+        const hasClaimedToday = claims.some(c => new Date(c.createdAt).toDateString() === new Date().toDateString());
+
+        if (!hasActivePolicy) {
+            setEligibility({ status: 'Awaiting protection protocol...', message: 'Purchase a plan to enable parametric coverage.', canClaim: false });
             return;
         }
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const existingClaimToday = claimsList.find(c => new Date(c.createdAt) >= today);
-        
-        if (existingClaimToday) {
-            setEligibility({ status: 'Claim Limit Reached', message: `You have already filed a claim today. Please check back tomorrow.`, canClaim: false });
+        const isModeActive = modeOverride !== undefined ? modeOverride : testMode;
+        const canSubmit = isModeActive || !hasClaimedToday;
+
+        // 🔴 FREEZE SYSTEM CHECK (Requirement #6)
+        if (profile?.isFrozen) {
+            const expiry = new Date(profile.freezeUntil);
+            setEligibility({ 
+                status: 'Account Restricted', 
+                message: `🚫 Your account is blocked until ${expiry.toLocaleDateString()} at ${expiry.toLocaleTimeString()}. Suspicious activity detected.`, 
+                canClaim: false 
+            });
             return;
         }
 
-        setEligibility({ status: 'Eligible for claim today', message: 'Parametric triggers are monitoring your area.', canClaim: true });
+        // ML Warning Context
+        if (profile?.fraudStatus === 'suspicious') {
+            setEligibility({ 
+                status: 'High risk monitoring active', 
+                message: '⚠️ Unusual activity detected. Continued behavior may lead to account restriction.', 
+                canClaim: canSubmit
+            });
+            return;
+        }
+
+        setEligibility({ status: 'Eligible for claim', message: 'Parametric triggers are monitoring your area.', canClaim: canSubmit });
     };
 
     const fetchData = async () => {
         try {
-            const [profRes, polRes, claimRes] = await Promise.all([
-                axios.get(`${API}/api/worker/profile`),
+            const [profRes, polRes, claimRes, configRes] = await Promise.all([
+                axios.get(`${API}/api/users/profile`),
                 axios.get(`${API}/api/policy/active`),
-                axios.get(`${API}/api/claim/history`)
+                axios.get(`${API}/api/claims/history`),
+                axios.get(`${API}/api/config`)
             ]);
             const profileData = profRes.data.profile;
-            const activePol = polRes.data || null;
+            const activePol = polRes.data && polRes.data._id ? polRes.data : null;
             const claimsList = claimRes.data || [];
+            
+            setTestMode(configRes.data.testMode);
 
             setProfile(profileData);
             setRecommendedPolicy(profRes.data.recommendedPolicy);
             setActivePolicy(activePol);
             setClaims(claimsList);
             
-            initWeatherTracking(profileData); // Start monitoring with profile data
-            checkEligibility(activePol, claimsList);
+            initWeatherTracking(profileData);
+            checkEligibility(activePol, claimsList, configRes.data.testMode);
         } catch (err) {
             console.error(err);
         } finally {
@@ -130,19 +151,6 @@ export default function WorkerDashboard() {
             fetchData();
         } catch (err) {
             showNotification('Failed to activate policy', 'error');
-        }
-    };
-
-    const submitClaimRequest = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await axios.post(`${API}/api/claim/trigger`, { disruptionType: selectedDisruption });
-            showNotification(res.data.msg, 'success');
-            fetchData();
-        } catch (err) {
-            const msg = err.response?.data?.msg || 'Error triggering claim request';
-            showNotification(msg, 'error');
-            fetchData();
         }
     };
 
@@ -209,29 +217,56 @@ export default function WorkerDashboard() {
 
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
                 <div className="flex-1">
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-4">Worker Portal</h1>
-                    
-                    {/* Fraud Status Warnings */}
-                    {profile?.fraudStatus === "high_risk" && (
-                        <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-2xl mb-8 flex items-center gap-5 text-red-800 shadow-xl shadow-red-900/5 animate-pulse">
-                            <div className="p-4 bg-red-100 rounded-2xl text-red-600">
-                                <AlertCircle size={32} />
+                    <div className="flex items-center gap-4 mb-4">
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Worker Portal</h1>
+                        {testMode && (
+                            <div className="px-3 py-1 bg-amber-50 text-amber-500 border border-amber-100 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 animate-pulse">
+                                <Shield size={12} /> Test Environment
                             </div>
-                            <div>
-                                <h3 className="text-lg font-black uppercase tracking-tight">⚠ Unusual activity detected</h3>
-                                <p className="font-bold opacity-80 leading-tight">Your account is under monitoring. Please ensure you are using the system fairly and according to terms.</p>
+                        )}
+                    </div>
+                    
+                    {/* 🛑 FREEZE LEVEL UI (Score >= 80) */}
+                    {profile?.isFrozen && (
+                        <div className="bg-slate-900 border-l-4 border-red-600 p-8 rounded-[2.5rem] mb-8 flex flex-col md:flex-row items-center gap-6 text-white shadow-2xl animate-shake">
+                            <div className="p-5 bg-red-600/20 rounded-3xl text-red-500 shadow-inner">
+                                <ShieldAlert size={48} />
+                            </div>
+                            <div className="flex-1 text-center md:text-left">
+                                <h3 className="text-2xl font-black uppercase tracking-tighter mb-1">⛔ Account Temporarily Restricted</h3>
+                                <p className="font-bold text-slate-400 leading-tight mb-4 text-lg">Your account functions are restricted due to high fraud risk patterns detected by the GigShield AI.</p>
+                                <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 rounded-2xl border border-white/10">
+                                    <div className="w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+                                    <span className="text-sm font-black uppercase tracking-[0.2em] text-red-400">
+                                        Restrictions Lifted In: {Math.max(0, Math.ceil((new Date(profile.freezeUntil) - new Date()) / (1000 * 60 * 60)))} Hours
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    {profile?.fraudStatus === "suspicious" && (
-                        <div className="bg-amber-50 border-l-4 border-amber-400 p-5 rounded-2xl mb-8 flex items-center gap-5 text-amber-800 shadow-xl shadow-amber-900/5 transition-all">
-                            <div className="p-3.5 bg-amber-100 rounded-2xl text-amber-600">
-                                <ShieldAlert size={28} />
+                    {/* 🔺 WARNING LEVEL UI (Score 50 - 79) */}
+                    {!profile?.isFrozen && profile?.fraudScore >= 50 && (
+                         <div className="bg-amber-50 border-l-4 border-amber-400 p-6 rounded-[2rem] mb-8 flex items-center gap-5 text-amber-800 shadow-xl shadow-amber-900/5 transition-all">
+                            <div className="p-4 bg-amber-100 rounded-2xl text-amber-600">
+                                <AlertCircle size={32} />
                             </div>
                             <div>
-                                <h3 className="text-md font-black uppercase tracking-tight leading-none mb-1">⚠ Account Pattern Notice</h3>
-                                <p className="font-bold opacity-80 leading-tight text-sm">Your recent activity pattern is unusual. Please ensure fair usage to avoid further security review.</p>
+                                <h3 className="text-lg font-black uppercase tracking-tight leading-none mb-1">⚠ Unusual activity detected</h3>
+                                <p className="font-bold opacity-80 leading-tight">Please use the system fairly. Further suspicious patterns may result in temporary account restrictions.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Previous Risk Warnings Map to specific fraud status labels if needed, but the score-based logic above is the NEW requirement */}
+                    {profile?.fraudStatus === "high_risk" && !profile?.isFrozen && profile?.fraudScore < 50 && (
+                        <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-2xl mb-8 flex items-center gap-5 text-red-800 shadow-xl shadow-red-900/5">
+                            <div className="p-4 bg-red-100 rounded-2xl text-red-600">
+                                <AlertCircle size={32} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black uppercase tracking-tight">⚠ Risk Monitoring Active</h3>
+                                <p className="font-bold opacity-80 leading-tight">Your account is under intensive monitoring. Please ensure fair usage.</p>
                             </div>
                         </div>
                     )}
@@ -347,9 +382,9 @@ export default function WorkerDashboard() {
                                 <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                                     <button 
                                         onClick={() => navigate('/claim')}
-                                        disabled={!eligibility.canClaim}
+                                        disabled={!eligibility.canClaim || profile?.isFrozen}
                                         className={`group px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all ${
-                                            eligibility.canClaim 
+                                            eligibility.canClaim && !profile?.isFrozen
                                             ? 'bg-primary text-white shadow-xl shadow-primary/40 hover:scale-105 active:scale-95' 
                                             : 'bg-white/5 text-white/30 cursor-not-allowed grayscale'
                                         }`}
@@ -450,10 +485,10 @@ export default function WorkerDashboard() {
                                         </div>
                                     </div>
                                     <div className="pt-2 border-t border-slate-50">
-                                        <p className="text-[9px] text-slate-400 font-bold text-center uppercase tracking-widest flex items-center justify-center gap-2">
+                                        <div className="text-[9px] text-slate-400 font-bold text-center uppercase tracking-widest flex items-center justify-center gap-2">
                                             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> 
                                             Real-time Network Feed Active
-                                        </p>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -493,7 +528,15 @@ export default function WorkerDashboard() {
                                 <div className="flex-1 flex flex-col items-center justify-center text-center py-6">
                                     <ShieldAlert size={48} className="mb-4 text-slate-200" />
                                     <p className="text-sm font-bold text-slate-500 mb-6 leading-relaxed">System Unprotected.<br/>Workers without coverage cannot claim payouts.</p>
-                                    <button onClick={() => navigate('/policies')} className="w-full py-4 bg-primary text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+                                    <button 
+                                        onClick={() => navigate('/policies')} 
+                                        disabled={profile?.isFrozen}
+                                        className={`w-full py-4 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-xl transition-all ${
+                                            profile?.isFrozen 
+                                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                                            : 'bg-primary shadow-primary/20 hover:scale-105 active:scale-95'
+                                        }`}
+                                    >
                                         Buy Policy Now
                                     </button>
                                 </div>
@@ -631,5 +674,3 @@ export default function WorkerDashboard() {
         </motion.div>
     );
 }
-
-const Info = ({ size, className }) => <AlertCircle size={size} className={className} />;

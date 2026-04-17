@@ -4,8 +4,9 @@ import { AuthContext } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { 
     User, Mail, Phone, MapPin, Shield, Calendar, 
-    Edit2, Save, X, Navigation, LogOut, Trash2, 
-    CheckCircle, AlertCircle, ShieldCheck, Search, Globe, Map, IndianRupee
+    Edit2, Edit3, Save, X, Navigation, LogOut, Trash2, 
+    CheckCircle, AlertCircle, ShieldCheck, Search, Globe, Map, IndianRupee,
+    Activity, Lock
 } from 'lucide-react';
 import { tnDistricts } from '../utils/districts';
 
@@ -48,14 +49,17 @@ export default function Profile() {
             const res = await axios.get(`${API}/api/users/profile`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            setProfile(res.data.user);
+            const profileData = res.data.profile;
+            if (!profileData) throw new Error("No profile data found");
+
+            setProfile(profileData);
             setFormData({
-                name: res.data.user.name,
-                phone: res.data.user.phone || '',
-                district: res.data.user.district || '',
-                workingArea: res.data.user.workingArea || '',
-                lat: res.data.user.location?.lat || '',
-                lon: res.data.user.location?.lon || ''
+                name: profileData.name || '',
+                phone: profileData.phone || '',
+                district: profileData.district || '',
+                workingArea: profileData.workingArea || '',
+                lat: profileData.lat || '',
+                lon: profileData.lon || ''
             });
         } catch (err) {
             console.error('Failed to fetch profile', err);
@@ -72,16 +76,15 @@ export default function Profile() {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleUpdate = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.put(`${API}/api/users/profile`, formData, {
+            await axios.put(`${API}/api/users/profile`, formData, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             
-            // Update global auth context so sidebar/dashboard update immediately
             setUser(prev => ({ 
                 ...prev, 
                 name: formData.name, 
@@ -90,10 +93,10 @@ export default function Profile() {
                 location: { lat: formData.lat, lon: formData.lon }
             }));
             
-            showNotification(`Profile updated successfully! 📍 Area: ${formData.workingArea || formData.district}`, 'success');
+            showNotification(`Profile updated successfully!`, 'success');
             setEditMode(false);
             setDetectedLoc(null);
-            await fetchData(); // Refresh local profile state
+            await fetchData();
         } catch (err) {
             showNotification('Failed to update profile', 'error');
         } finally {
@@ -113,7 +116,6 @@ export default function Profile() {
             const { city, lat, lon, state } = res.data;
             setFormData({ ...formData, lat, lon });
             setDetectedLoc(`${city}, ${state || ''} (${lat.toFixed(2)}, ${lon.toFixed(2)})`);
-            showNotification(`📍 Location detected: ${city}`, 'success');
         } catch (err) {
             showNotification(err.response?.data?.msg || 'Location not found', 'error');
         } finally {
@@ -126,15 +128,30 @@ export default function Profile() {
             showNotification('Geolocation is not supported', 'error');
             return;
         }
-        navigator.geolocation.getCurrentPosition((pos) => {
+        navigator.geolocation.getCurrentPosition(async (pos) => {
             const { latitude, longitude } = pos.coords;
-            setFormData({
-                ...formData,
-                lat: latitude,
-                lon: longitude
-            });
-            setDetectedLoc(`Current GPS (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`);
-            showNotification('GPS Coordinates updated!', 'success');
+            const updatedCoords = { lat: latitude, lon: longitude };
+            
+            setFormData(prev => ({ ...prev, ...updatedCoords }));
+            setDetectedLoc(`Precision GPS (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
+            
+            if (!editMode) {
+                try {
+                    const token = localStorage.getItem('token');
+                    await axios.put(`${API}/api/users/profile`, updatedCoords, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    showNotification('GPS Synchronized!', 'success');
+                    const profRes = await axios.get(`${API}/api/users/profile`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    setProfile(profRes.data.profile);
+                } catch (err) {
+                    showNotification('GPS sync failed', 'error');
+                }
+            } else {
+                showNotification('Coordinates updated!', 'success');
+            }
         });
     };
 
@@ -143,7 +160,7 @@ export default function Profile() {
         setTimeout(() => setNotification(null), 3000);
     };
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-medium italic">Loading your profile...</div>;
+    if (loading || !profile) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-medium italic">Loading your profile...</div>;
 
     return (
         <motion.div 
@@ -154,15 +171,24 @@ export default function Profile() {
             <div className="flex justify-between items-center mb-10">
                 <h1 className="text-4xl font-black text-slate-900 tracking-tight">Worker Profile</h1>
                 <button 
-                    onClick={() => setEditMode(!editMode)}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold transition-all ${
-                        editMode ? 'bg-slate-100 text-slate-500' : 'bg-primary text-white shadow-xl shadow-primary/20 hover:scale-105'
+                    onClick={() => {
+                        if (editMode) setFormData({
+                            name: profile.name,
+                            phone: profile.phone || '',
+                            district: profile.district || '',
+                            workingArea: profile.workingArea || '',
+                            lat: profile.lat,
+                            lon: profile.lon
+                        });
+                        setEditMode(!editMode);
+                    }}
+                    className={`px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all ${
+                        editMode ? 'bg-slate-200 text-slate-600' : 'bg-primary text-white shadow-xl shadow-primary/20 hover:scale-105 active:scale-95'
                     }`}
                 >
-                    {editMode ? <><X size={18} /> Cancel</> : <><Edit2 size={18} /> Edit Profile</>}
+                    {editMode ? 'Cancel' : <><Edit3 size={16} /> Edit Profile</>}
                 </button>
             </div>
-
 
             {notification && (
                 <div className={`fixed top-10 right-10 z-50 p-4 rounded-2xl shadow-2xl border animate-fade-in ${
@@ -176,7 +202,6 @@ export default function Profile() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {/* User Card */}
                 <div className="md:col-span-1 space-y-8">
                     <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 text-center relative overflow-hidden group">
                         <div className="absolute top-0 left-0 w-full h-24 bg-primary/5"></div>
@@ -190,19 +215,12 @@ export default function Profile() {
                             <div className="mt-8 space-y-4 text-left">
                                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
                                     <Mail className="text-slate-400" size={18} />
-                                    <div>
+                                    <div className="overflow-hidden">
                                         <p className="text-[10px] text-slate-400 font-black uppercase">Email Address</p>
-                                        <p className="text-sm font-bold text-slate-700">{profile.email}</p>
+                                        <p className="text-sm font-bold text-slate-700 truncate">{profile.email}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <Phone className="text-slate-400" size={18} />
-                                    <div>
-                                        <p className="text-[10px] text-slate-400 font-black uppercase">Phone Number</p>
-                                        <p className="text-sm font-bold text-slate-700">{profile.phone || 'Not provided'}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 border-l-4 border-l-primary/30">
                                     <MapPin className="text-slate-400" size={18} />
                                     <div>
                                         <p className="text-[10px] text-slate-400 font-black uppercase">Home District / Area</p>
@@ -213,68 +231,71 @@ export default function Profile() {
                         </div>
                     </div>
 
-                    <div className="bg-slate-900 rounded-[2rem] p-8 text-white relative overflow-hidden">
-                        <Shield className="absolute -right-4 -bottom-4 opacity-10" size={100} />
-                        <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Account Details</h4>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center text-sm font-bold">
-                                <span className="text-slate-400">Created On</span>
-                                <span>{new Date(profile.createdAt).toLocaleDateString()}</span>
+                    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-6 overflow-hidden relative group">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="p-2.5 bg-indigo-50 text-indigo-500 rounded-2xl uppercase font-black text-[10px] tracking-tighter flex items-center gap-2">
+                                <Activity size={14} /> Precision Telemetry
                             </div>
-                            <div className="flex justify-between items-center text-sm font-bold">
-                                <span className="text-slate-400">Status</span>
-                                <span className="text-green-400">Verified</span>
-                            </div>
+                            {profile.lat && profile.lon && (
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            )}
                         </div>
+                        <p className="text-slate-400 text-xs font-bold leading-relaxed mb-6">
+                            Required for weather-triggered payouts. Synchronize your current coordinates with your insured region.
+                        </p>
+                        <button 
+                            onClick={useCurrentLocation}
+                            className="w-full bg-slate-900 text-white font-black text-xs uppercase tracking-widest py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-all hover:shadow-lg active:scale-95"
+                        >
+                            <Navigation size={16} /> Sync GPS Now
+                        </button>
+                        {detectedLoc && (
+                            <p className="mt-4 text-[10px] text-center font-bold text-green-600 bg-green-50 py-2 rounded-xl border border-green-100 px-2 animate-in fade-in slide-in-from-top-1">
+                                {detectedLoc}
+                            </p>
+                        )}
                     </div>
                 </div>
 
-                {/* Settings & Policy Section */}
                 <div className="md:col-span-2 space-y-8">
-                    {/* Policy Card */}
-                    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
-                        <div className={`absolute top-0 right-0 w-2 h-full ${profile.policyActive ? 'bg-green-500' : 'bg-slate-200'}`}></div>
-                        <div className={`w-20 h-20 rounded-3xl flex items-center justify-center ${profile.policyActive ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-300'}`}>
-                            <Shield size={40} />
-                        </div>
-                        <div className="flex-1 text-center md:text-left">
-                            <div className="mb-1">
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${profile.policyActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                                    {profile.policyActive ? 'Income Protected' : 'Not Protected'}
-                                </span>
-                            </div>
-                            <h3 className="text-2xl font-black text-slate-900 mb-2">GigShield Basic Plan</h3>
-                            {profile.policyActive ? (
-                                <div className="space-y-1">
-                                    <p className="text-sm font-bold text-slate-500 flex items-center justify-center md:justify-start gap-1">
-                                        <Calendar size={14} /> Valid until {new Date(profile.activePolicy?.endDate).toLocaleDateString()}
-                                    </p>
-                                    <p className="text-sm font-bold text-green-600 flex items-center justify-center md:justify-start gap-1">
-                                        <IndianRupee size={14} /> ₹{profile.activePolicy?.coverage} coverage active
-                                    </p>
-                                </div>
-                            ) : (
-                                <p className="text-sm font-bold text-slate-400 italic">Your account is currently vulnerable to weather disruptions.</p>
-                            )}
-                        </div>
-                    </div>
+                    {profile.policyActive && (
+                         <div className="bg-green-50 border border-green-100 p-6 rounded-[2.5rem] flex items-center gap-6 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-32 h-full bg-green-500/5 -skew-x-12 translate-x-12"></div>
+                             <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center text-green-500 shadow-sm transition-transform group-hover:scale-110">
+                                 <Shield size={32} />
+                             </div>
+                             <div className="flex-1">
+                                 <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[10px] font-black text-green-600 uppercase tracking-widest bg-green-100/50 px-2 py-0.5 rounded-full">Income Protected</span>
+                                    <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">₹{profile.activePolicy?.coverage} coverage active</span>
+                                 </div>
+                                 <h3 className="text-2xl font-black text-slate-900 leading-tight">{profile.activePolicy?.planName} Plan</h3>
+                                 <div className="flex items-center gap-4 mt-2">
+                                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 italic">
+                                         <Calendar size={14} className="text-slate-400" />
+                                         Valid until {new Date(profile.activePolicy?.endDate).toLocaleDateString()}
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+                    )}
 
-                    {/* Editor / Info Form */}
                     <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
-                        <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-2">
-                           {editMode ? <Edit2 className="text-primary" /> : <User className="text-primary" />}
-                           {editMode ? 'Edit My Information' : 'Personal Details'}
-                        </h3>
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="p-3 bg-blue-50 text-blue-500 rounded-2xl">
+                                <User size={24} />
+                            </div>
+                            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Personal Details</h3>
+                        </div>
 
-                        <form onSubmit={handleUpdate} className="space-y-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <form onSubmit={handleSubmit} className="space-y-8">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Display Name</label>
                                     <input 
-                                        type="text" 
+                                        type="text"
                                         name="name"
                                         disabled={!editMode}
-                                        placeholder="Full Name"
                                         value={formData.name}
                                         onChange={handleChange}
                                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-700 outline-none focus:border-primary disabled:opacity-70 transition-all font-sans"
@@ -283,7 +304,7 @@ export default function Profile() {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Contact Phone</label>
                                     <input 
-                                        type="text" 
+                                        type="text"
                                         name="phone"
                                         disabled={!editMode}
                                         placeholder="+91 00000 00000"
@@ -292,75 +313,57 @@ export default function Profile() {
                                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-700 outline-none focus:border-primary disabled:opacity-70 transition-all font-sans"
                                     />
                                 </div>
-                                
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Primary District</label>
-                                    <select 
-                                        name="district"
-                                        disabled={!editMode || (profile?.policyActive && new Date(profile?.activePolicy?.endDate) > new Date())}
-                                        value={formData.district}
-                                        onChange={(e) => setFormData({...formData, district: e.target.value, workingArea: ''})}
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-700 outline-none focus:border-primary disabled:opacity-70 transition-all font-sans"
-                                    >
-                                        <option value="">Select District</option>
-                                        {Object.keys(tnDistricts).map(d => (
-                                            <option key={d} value={d}>{d}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                            </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Specific Working Area</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <select 
-                                                name="workingArea"
-                                                disabled={!editMode || !formData.district || (profile?.policyActive && new Date(profile?.activePolicy?.endDate) > new Date())}
-                                                value={formData.workingArea}
-                                                onChange={handleChange}
-                                                onBlur={() => editMode && !detectedLoc && formData.workingArea && searchLocation()}
-                                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-700 outline-none focus:border-primary disabled:opacity-50 transition-all font-sans appearance-none"
-                                            >
-                                                <option value="">Working Area</option>
-                                                {formData.district && tnDistricts[formData.district] && tnDistricts[formData.district].map(area => (
-                                                    <option key={area} value={area}>{area}</option>
-                                                ))}
-                                            </select>
-                                            {detectedLoc && (
-                                                <div className="absolute top-full left-0 mt-1 flex items-center gap-1 text-[10px] text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
-                                                    <Globe size={10} /> {detectedLoc}
-                                                </div>
-                                            )}
+                            <div className="pt-6 border-t border-slate-50">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Coverage Region</label>
+                                    {profile.policyActive && (
+                                        <div className="flex items-center gap-1 text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 uppercase tracking-wider animate-pulse">
+                                            <Lock size={10} /> Region Locked
                                         </div>
-                                        {editMode && (
-                                            <button 
-                                                type="button"
-                                                onClick={searchLocation}
-                                                disabled={searching || (profile?.policyActive && new Date(profile?.activePolicy?.endDate) > new Date())}
-                                                className="bg-primary text-white p-4 rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
-                                                title="Check This Area"
-                                            >
-                                                {searching ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : <Navigation size={20} />}
-                                            </button>
-                                        )}
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Primary District</label>
+                                        <select 
+                                            name="district"
+                                            disabled={!editMode || profile.policyActive}
+                                            value={formData.district}
+                                            onChange={(e) => setFormData({...formData, district: e.target.value, workingArea: ''})}
+                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-700 outline-none focus:border-primary disabled:opacity-40 disabled:grayscale transition-all font-sans"
+                                        >
+                                            <option value="">Select District</option>
+                                            {Object.keys(tnDistricts).map(d => (
+                                                <option key={d} value={d}>{d}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Working Area</label>
+                                        <select 
+                                            name="workingArea"
+                                            disabled={!editMode || !formData.district || profile.policyActive}
+                                            value={formData.workingArea}
+                                            onChange={handleChange}
+                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-700 outline-none focus:border-primary disabled:opacity-40 disabled:grayscale transition-all font-sans"
+                                        >
+                                            <option value="">Working Area</option>
+                                            {formData.district && tnDistricts[formData.district] && tnDistricts[formData.district].map(area => (
+                                                <option key={area} value={area}>{area}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
                             </div>
 
                             {editMode && (
-                                <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                                    <button 
-                                        type="button"
-                                        onClick={useCurrentLocation}
-                                        disabled={profile?.policyActive && new Date(profile?.activePolicy?.endDate) > new Date()}
-                                        className="flex-1 bg-slate-900 text-white font-black text-xs uppercase tracking-widest py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-all disabled:opacity-50 disabled:grayscale"
-                                    >
-                                        <Navigation size={16} /> Use Current Location
-                                    </button>
+                                <div className="pt-8">
                                     <button 
                                         type="submit"
                                         disabled={saving || !hasChanged()}
-                                        className={`flex-1 font-black text-xs uppercase tracking-widest py-4 rounded-2xl flex items-center justify-center gap-2 transition-all ${
+                                        className={`w-full font-black text-xs uppercase tracking-widest py-4 rounded-2xl flex items-center justify-center gap-2 transition-all ${
                                             saving || !hasChanged() 
                                             ? 'bg-slate-100 text-slate-300 cursor-not-allowed' 
                                             : 'bg-primary text-white shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95'

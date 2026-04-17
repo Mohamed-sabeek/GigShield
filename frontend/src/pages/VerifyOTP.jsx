@@ -15,7 +15,10 @@ export default function VerifyOTP() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
-    const [timer, setTimer] = useState(300); // 5 minutes
+    
+    // Persistent Timers using localStorage
+    const [timer, setTimer] = useState(300); 
+    const [resendTimer, setResendTimer] = useState(30);
     const [canResend, setCanResend] = useState(false);
 
     useEffect(() => {
@@ -24,15 +27,32 @@ export default function VerifyOTP() {
             return;
         }
 
+        // Initialize or Sync Timers
+        const now = Date.now();
+        let expiryTime = localStorage.getItem(`otp_expiry_${email}`);
+        let resendTime = localStorage.getItem(`otp_resend_${email}`);
+
+        if (!expiryTime) {
+            expiryTime = now + 300000; // 5 mins
+            localStorage.setItem(`otp_expiry_${email}`, expiryTime);
+        }
+        if (!resendTime) {
+            resendTime = now + 30000; // 30 secs
+            localStorage.setItem(`otp_resend_${email}`, resendTime);
+        }
+
         const countdown = setInterval(() => {
-            setTimer((prev) => {
-                if (prev <= 1) {
-                    clearInterval(countdown);
-                    setCanResend(true);
-                    return 0;
-                }
-                return prev - 1;
-            });
+            const currentTime = Date.now();
+            
+            const remainingExpiry = Math.max(0, Math.floor((expiryTime - currentTime) / 1000));
+            const remainingResend = Math.max(0, Math.floor((resendTime - currentTime) / 1000));
+
+            setTimer(remainingExpiry);
+            setResendTimer(remainingResend);
+            
+            if (remainingResend <= 0) {
+                setCanResend(true);
+            }
         }, 1000);
 
         return () => clearInterval(countdown);
@@ -71,6 +91,11 @@ export default function VerifyOTP() {
         try {
             await verifyOTP(email, otpCode);
             setSuccess('Account verified successfully! Redirecting...');
+            
+            // Clear persistent timers on success
+            localStorage.removeItem(`otp_expiry_${email}`);
+            localStorage.removeItem(`otp_resend_${email}`);
+            
             setTimeout(() => navigate('/dashboard'), 2000);
         } catch (err) {
             setError(err);
@@ -86,7 +111,11 @@ export default function VerifyOTP() {
         try {
             await resendOTP(email);
             setSuccess('A new code has been sent to your email');
-            setTimer(300);
+            
+            // Update persistent resend timer (30 seconds)
+            const newResendTime = Date.now() + 30000;
+            localStorage.setItem(`otp_resend_${email}`, newResendTime);
+            
             setCanResend(false);
             setOtp(['', '', '', '', '', '']);
         } catch (err) {
@@ -179,7 +208,7 @@ export default function VerifyOTP() {
                                 disabled={loading || !canResend}
                                 className="text-primary font-black uppercase tracking-widest text-xs hover:underline disabled:opacity-30 disabled:no-underline"
                             >
-                                Resend OTP {timer === 0 && '(Available)'}
+                                {canResend ? 'Resend OTP' : `Resend in ${resendTimer}s`}
                             </button>
                         </div>
                     </div>

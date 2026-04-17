@@ -21,7 +21,8 @@ export default function Policies() {
             ]);
             setProfile(profRes.data.profile);
             setRecommendedPolicy(profRes.data.recommendedPolicy);
-            setActivePolicy(polRes.data || null);
+            const activePol = polRes.data && polRes.data._id ? polRes.data : null;
+            setActivePolicy(activePol);
         } catch (err) {
             console.error(err);
         } finally {

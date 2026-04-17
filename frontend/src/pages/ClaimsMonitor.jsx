@@ -196,10 +196,25 @@ export default function ClaimsMonitor() {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-6 text-right">
-                                            <p className="text-[10px] font-black text-slate-500 font-sans tracking-tight">{new Date(claim.createdAt).toLocaleDateString()}</p>
-                                            <p className="text-[10px] font-bold text-slate-300 font-sans tracking-tight">{new Date(claim.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</p>
-                                        </td>
+                                         <td className="px-6 py-6">
+                                             <div className="flex items-center gap-3">
+                                                 <div className={`w-2 h-2 rounded-full ${
+                                                     claim.fraudScoreAtTime >= 80 ? 'bg-red-500' :
+                                                     claim.fraudScoreAtTime >= 50 ? 'bg-orange-500' :
+                                                     'bg-green-500'
+                                                 }`}></div>
+                                                 <div>
+                                                     <p className="text-[10px] font-black uppercase text-slate-400 leading-none mb-1">Risk at Claim</p>
+                                                     <p className="text-xs font-black text-slate-800 tracking-tighter">
+                                                         Score: {claim.fraudScoreAtTime || 0}
+                                                     </p>
+                                                 </div>
+                                             </div>
+                                         </td>
+                                         <td className="px-8 py-6 text-right">
+                                             <p className="text-[10px] font-black text-slate-500 font-sans tracking-tight">{new Date(claim.createdAt).toLocaleDateString()}</p>
+                                             <p className="text-[10px] font-bold text-slate-300 font-sans tracking-tight">{new Date(claim.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</p>
+                                         </td>
                                         <td className="px-4 py-6">
                                             <div className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-[0.2em] border ${
                                                 claim.autoProcessed ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'

@@ -14,15 +14,20 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [workers, setWorkers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
+    const [sortBy, setSortBy] = useState('earnings');
+    const [testMode, setTestMode] = useState(false);
 
     const fetchData = async () => {
         try {
-            const [statsRes, workersRes] = await Promise.all([
+            const [statsRes, workersRes, configRes] = await Promise.all([
                 axios.get(`${API}/api/admin/dashboard`),
-                axios.get(`${API}/api/admin/workers`)
+                axios.get(`${API}/api/admin/workers`),
+                axios.get(`${API}/api/config`)
             ]);
             setStats(statsRes.data);
             setWorkers(workersRes.data);
+            setTestMode(configRes.data.testMode);
         } catch (err) {
             console.error(err);
         } finally {
@@ -33,6 +38,16 @@ export default function AdminDashboard() {
     useEffect(() => {
         fetchData();
     }, []);
+
+    const toggleMode = async () => {
+        try {
+            const res = await axios.post(`${API}/api/config/toggle`);
+            setTestMode(res.data.testMode);
+        } catch (err) {
+            console.error("Mode toggle failed:", err);
+            alert("Administrative override failed. Verify network connectivity.");
+        }
+    };
 
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
@@ -51,12 +66,22 @@ export default function AdminDashboard() {
     if (!stats) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-red-500 font-medium">Failed to load admin context. Verify credentials.</div>;
 
     const filteredWorkers = workers
-        .filter(w => 
-            w.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            w.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            w.platform?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-        .sort((a, b) => (b.claimStats?.totalEarnings || 0) - (a.claimStats?.totalEarnings || 0));
+        .filter(w => {
+            const matchesSearch = w.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                w.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                w.platform?.toLowerCase().includes(searchTerm.toLowerCase());
+            
+            const matchesStatus = statusFilter === 'All' || 
+                                (statusFilter === 'Frozen' && w.isFrozen) ||
+                                (statusFilter === 'Suspicious' && w.fraudStatus === 'suspicious') ||
+                                (statusFilter === 'High Risk' && w.fraudStatus === 'high_risk');
+
+            return matchesSearch && matchesStatus;
+        })
+        .sort((a, b) => {
+            if (sortBy === 'fraud') return (b.fraudScore || 0) - (a.fraudScore || 0);
+            return (b.claimStats?.totalEarnings || 0) - (a.claimStats?.totalEarnings || 0);
+        });
 
     return (
         <motion.div 
@@ -70,6 +95,17 @@ export default function AdminDashboard() {
                     <p className="text-slate-500 font-medium">Real-time telemetry and network participation metrics.</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <button 
+                        onClick={toggleMode}
+                        className={`px-4 py-2 rounded-2xl border flex items-center gap-2 transition-all font-black uppercase tracking-widest text-[10px] shadow-sm active:scale-95 ${
+                            testMode 
+                            ? 'bg-amber-50 border-amber-200 text-amber-600' 
+                            : 'bg-green-50 border-green-200 text-green-600'
+                        }`}
+                    >
+                        <Shield size={14} className={testMode ? 'animate-pulse' : ''} />
+                        {testMode ? '🟡 Test Mode Active' : '🟢 Production Mode'}
+                    </button>
                     <div className="bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Autonomous Sync: OK</span>
@@ -131,15 +167,40 @@ export default function AdminDashboard() {
             {activeTab === 'workers' && (
                 <div className="space-y-6 animate-fade-in">
                     <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
-                        <div className="relative w-full md:w-96">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                            <input 
-                                type="text" 
-                                placeholder="Search by name, platform or district..." 
-                                className="w-full pl-12 pr-4 py-4 rounded-3xl border border-slate-100 focus:border-primary outline-none transition-all font-black text-slate-700 shadow-sm"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                        <div className="flex flex-wrap gap-2">
+                            {['All', 'Frozen', 'Suspicious', 'High Risk'].map(f => (
+                                <button 
+                                    key={f}
+                                    onClick={() => setStatusFilter(f)}
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                                        statusFilter === f ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'
+                                    }`}
+                                >
+                                    {f}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex items-center gap-4 w-full md:w-auto">
+                            <select 
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="bg-white border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase outline-none focus:border-primary"
+                            >
+                                <option value="earnings">Sort by Earnings</option>
+                                <option value="fraud">Sort by Fraud Score</option>
+                            </select>
+                            
+                            <div className="relative flex-1 md:w-64">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search..." 
+                                    className="w-full pl-10 pr-4 py-3 rounded-2xl border border-slate-100 focus:border-primary outline-none text-xs font-bold"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -198,22 +259,23 @@ export default function AdminDashboard() {
                                                         worker.fraudStatus === 'suspicious' ? 'bg-orange-50 text-orange-600' :
                                                         'bg-green-50 text-green-600'
                                                     }`}>
-                                                        {worker.fraudStatus === 'high_risk' ? <AlertTriangle size={16} /> : <ShieldCheck size={16} />}
+                                                        {worker.fraudStatus === 'high_risk' || worker.isFrozen ? <AlertTriangle size={16} /> : <ShieldCheck size={16} />}
                                                     </div>
                                                     <div>
                                                         <div className="flex items-center gap-1.5 font-black text-[10px] uppercase tracking-wider">
                                                             Score: <span className={
-                                                                worker.fraudScore > 60 ? 'text-red-500' :
-                                                                worker.fraudScore > 30 ? 'text-orange-500' :
+                                                                worker.fraudScore >= 80 ? 'text-red-500' :
+                                                                worker.fraudScore >= 50 ? 'text-orange-500' :
                                                                 'text-green-600'
                                                             }>{worker.fraudScore || 0}</span>
+                                                            {worker.isFrozen && <span className="text-[8px] bg-red-100 text-red-600 px-1 rounded ml-1">FROZEN</span>}
                                                         </div>
                                                         <div className={`text-[9px] font-bold uppercase ${
-                                                            worker.fraudStatus === 'high_risk' ? 'text-red-600 animate-pulse' :
+                                                            worker.fraudStatus === 'high_risk' || worker.isFrozen ? 'text-red-600 animate-pulse' :
                                                             worker.fraudStatus === 'suspicious' ? 'text-orange-600' :
                                                             'text-slate-400'
                                                         }`}>
-                                                            {worker.fraudStatus?.replace('_', ' ')}
+                                                            {worker.isFrozen ? 'Frozen until ' + new Date(worker.freezeUntil).toLocaleDateString() : worker.fraudStatus?.replace('_', ' ')}
                                                         </div>
                                                     </div>
                                                 </div>

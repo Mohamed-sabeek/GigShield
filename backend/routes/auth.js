@@ -18,7 +18,7 @@ const generateOTP = () => {
 // @route   POST api/auth/signup
 router.post('/signup', async (req, res) => {
     try {
-        const { name, email, password, role, platform, city, workingArea, averageDailyIncome, phone, jobType, district, location } = req.body;
+        const { name, email, password, role, platform, city, workingArea, averageDailyIncome, phone, jobType, district, location, lat, lon } = req.body;
 
         let user = await User.findOne({ email });
         if (user) {
@@ -28,9 +28,15 @@ router.post('/signup', async (req, res) => {
         const otp = generateOTP();
         const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
+        // Format location correctly if passed as flat lat/lon
+        const userLocation = location || {};
+        if (lat) userLocation.lat = lat;
+        if (lon) userLocation.lon = lon;
+
         user = new User({
             name, email, password, role, platform, city, workingArea, averageDailyIncome,
-            phone, jobType, district, location,
+            phone, jobType, district, 
+            location: userLocation,
             otp, otpExpiry, isVerified: false
         });
 

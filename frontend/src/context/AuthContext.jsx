@@ -32,11 +32,9 @@ export const AuthProvider = ({ children }) => {
                 }
 
                 // Then fetch FULL profile including location
-                const res = await axios.get(`${API}/api/users/profile`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.data.user) {
-                    setUser(res.data.user);
+                const res = await axios.get(`${API}/api/users/profile`);
+                if (res.data.profile) {
+                    setUser(res.data.profile);
                 }
             }
             setLoading(false);

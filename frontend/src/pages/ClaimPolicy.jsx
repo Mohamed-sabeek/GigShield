@@ -19,18 +19,25 @@ export default function ClaimPolicy() {
     const [result, setResult] = useState(null);
     const [activePolicy, setActivePolicy] = useState(null);
     const [selectedDisruption, setSelectedDisruption] = useState('Rain Disruption');
+    const [profile, setProfile] = useState(null);
+    const [testMode, setTestMode] = useState(false);
 
     const fetchHistory = async () => {
         try {
             const token = localStorage.getItem('token');
-            const [claimsRes, policyRes] = await Promise.all([
-                axios.get(`${API}/api/claim/history`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                axios.get(`${API}/api/policy/active`, { headers: { 'Authorization': `Bearer ${token}` } })
+            const [claimsRes, policyRes, profileRes, configRes] = await Promise.all([
+                axios.get(`${API}/api/claims/history`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                axios.get(`${API}/api/policy/active`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                axios.get(`${API}/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                axios.get(`${API}/api/config`)
             ]);
-            setClaims(claimsRes.data);
-            setActivePolicy(policyRes.data || null);
+            setClaims(claimsRes.data || []);
+            setActivePolicy(policyRes.data && policyRes.data._id ? policyRes.data : null);
+            setProfile(profileRes.data.profile);
+            setTestMode(configRes.data.testMode);
         } catch (err) {
-            console.error(err);
+            console.error("Parametric sync failed:", err);
+            setClaims([]); // Fail gracefully
         } finally {
             setLoading(false);
         }
@@ -45,7 +52,7 @@ export default function ClaimPolicy() {
         setResult(null);
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.post(`${API}/api/claim/trigger`, { 
+            const res = await axios.post(`${API}/api/claims/trigger`, { 
                 disruptionType: selectedDisruption 
             }, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -54,13 +61,14 @@ export default function ClaimPolicy() {
                 status: res.data.status,
                 message: res.data.message,
                 amount: res.data.amount,
-                weather: res.data.weather
+                weather: res.data.weather,
+                warning: res.data.warning
             });
             fetchHistory(); 
         } catch (err) {
             setResult({
                 status: 'Error',
-                message: err.response?.data?.msg || 'Verification failed. Please try again.'
+                message: err.response?.data?.message || err.response?.data?.msg || 'Verification failed. Please try again.'
             });
         } finally {
             setSubmitting(false);
@@ -83,7 +91,14 @@ export default function ClaimPolicy() {
                     <div className="flex items-center gap-2 text-primary font-black mb-3 uppercase tracking-[0.3em] text-[10px]">
                         <Zap size={14} className="fill-primary" /> Instant Parametric Protection
                     </div>
-                    <h1 className="text-5xl font-black text-slate-900 tracking-tight">Claim Dashboard</h1>
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-5xl font-black text-slate-900 tracking-tight">Claim Dashboard</h1>
+                        {testMode && (
+                            <div className="px-3 py-1 bg-amber-50 text-amber-500 border border-amber-100 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 animate-pulse mb-1">
+                                <ShieldCheck size={12} /> Test Mode Active
+                            </div>
+                        )}
+                    </div>
                     <p className="text-slate-500 font-medium mt-1">Automatic weather-triggered payouts for gig workers.</p>
                 </div>
 
@@ -108,9 +123,16 @@ export default function ClaimPolicy() {
                         <div className="absolute bottom-0 left-0 w-40 h-40 bg-cyan-400/10 rounded-full blur-[100px] -ml-20 -mb-20"></div>
 
                         <div className="relative z-10">
-                            <h2 className="text-3xl font-black mb-8 tracking-tight flex items-center gap-4">
-                                <ShieldCheck size={36} className="text-primary" /> Request Payout
-                            </h2>
+                            <div className="flex justify-between items-center mb-8">
+                                <h2 className="text-3xl font-black tracking-tight flex items-center gap-4">
+                                    <ShieldCheck size={36} className="text-primary" /> Request Payout
+                                </h2>
+                                {testMode && (
+                                    <div className="px-4 py-1.5 bg-amber-500/20 border border-amber-500/50 rounded-xl text-amber-400 text-[10px] font-black uppercase tracking-widest">
+                                        ⚠️ Test Mode Active
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="space-y-8 max-w-xl">
                                 <div>
@@ -154,10 +176,11 @@ export default function ClaimPolicy() {
                                     ) : (
                                         <button 
                                             onClick={handleClaim}
-                                            disabled={submitting || todayClaim || !user?.isVerified}
+                                            disabled={submitting || (todayClaim && !testMode) || !user?.isVerified || profile?.isFrozen}
                                             className={`group w-full py-8 rounded-[2.5rem] font-black text-xl shadow-2xl transition-all flex flex-col items-center justify-center gap-2 ${
                                                 submitting ? 'bg-slate-800 cursor-not-allowed opacity-70' :
-                                                todayClaim ? 'bg-green-500/20 text-green-400 border-2 border-green-500/20 shadow-none' :
+                                                profile?.isFrozen ? 'bg-red-500/20 text-red-400 border-2 border-red-500/20 cursor-not-allowed' :
+                                                (todayClaim && !testMode) ? 'bg-green-500/20 text-green-400 border-2 border-green-500/20 shadow-none' :
                                                 !user?.isVerified ? 'bg-slate-800 text-slate-500' :
                                                 'bg-white text-slate-900 hover:scale-[0.98] active:scale-95'
                                             }`}
@@ -167,10 +190,15 @@ export default function ClaimPolicy() {
                                                     <div className="w-8 h-8 border-4 border-slate-500 border-t-white rounded-full animate-spin"></div>
                                                     <span className="text-xs font-bold uppercase tracking-widest mt-2">Analyzing weather conditions...</span>
                                                 </>
-                                            ) : todayClaim ? (
+                                            ) : (todayClaim && !testMode) ? (
                                                 <>
                                                     <CheckCircle2 size={32} />
                                                     <span className="text-xs">You have already claimed today</span>
+                                                </>
+                                            ) : profile?.isFrozen ? (
+                                                <>
+                                                    <AlertCircle size={32} />
+                                                    <span className="text-xs">Account Restricted - Fraud Risk</span>
                                                 </>
                                             ) : !user?.isVerified ? (
                                                 <span className="text-xs">Verify Account to Claim</span>
@@ -232,6 +260,14 @@ export default function ClaimPolicy() {
                                                     <p className="text-[10px] font-black uppercase text-slate-400 mb-1 tracking-widest">Wind</p>
                                                     <p className="font-black text-slate-900">{result.weather.wind.toFixed(1)}k/h</p>
                                                 </div>
+                                            </div>
+                                        )}
+                                        {result.warning && (
+                                            <div className="mt-8 bg-amber-400/10 border border-amber-400/20 p-5 rounded-3xl flex items-start gap-4 text-amber-900">
+                                                <AlertCircle size={20} className="shrink-0 text-amber-500 mt-0.5" />
+                                                <p className="text-xs font-black uppercase tracking-tight leading-relaxed">
+                                                    {result.warning}
+                                                </p>
                                             </div>
                                         )}
                                     </div>
@@ -296,7 +332,7 @@ export default function ClaimPolicy() {
                                 { l: 'Rain Disruption Threshold', v: '≥ 2mm' },
                                 { l: 'Heatwave Threshold', v: '≥ 40°C' },
                                 { l: 'Flood Protection', v: '≥ 10mm' },
-                                { l: 'Daily Cap', v: '1 Claim' }
+                                { l: 'Daily Cap', v: testMode ? 'Unlimited (Test)' : '1 Claim' }
                             ].map((rule, i) => (
                                 <div key={i} className="flex justify-between items-center group">
                                     <p className="text-xs font-bold text-slate-300 group-hover:text-primary transition-colors">{rule.l}</p>

@@ -47,7 +47,7 @@ router.get('/claims', auth, async (req, res) => {
         if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Not authorized' });
 
         const claims = await Claim.find()
-            .populate('userId', 'name city district workingArea platform')
+            .populate('userId', 'name email location city district workingArea platform')
             .sort({ createdAt: -1 });
 
         res.json(claims);

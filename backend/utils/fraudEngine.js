@@ -31,14 +31,13 @@ const calculateFraudScore = async (userId) => {
 
         // 🔺 FRAUD SCORE INCREASE RULES
 
-        // RULE 1: High Rejection Ratio
-        if (totalClaims >= 5 && rejectionRatio >= 0.8) {
-            score += 20;
+        // RULE 1: High Rejection Ratio (AGGRESSIVE FOR TESTING)
+        if (totalClaims >= 3 && rejectionRatio >= 0.5) {
+            score += 30;
         }
 
-        // RULE 2: Continuous Claiming (5-7 consecutive days)
-        // We check if the user has claims on 5 distinct consecutive days in their history
-        if (totalClaims >= 5) {
+        // RULE 2: Continuous Claiming (3+ consecutive days)
+        if (totalClaims >= 3) {
             const claimDates = [...new Set(claims.map(c => new Date(c.createdAt).toDateString()))]
                 .map(d => new Date(d));
             
@@ -57,52 +56,63 @@ const calculateFraudScore = async (userId) => {
                 }
             }
 
-            if (maxConsecutive >= 5) {
-                score += 15;
+            if (maxConsecutive >= 3) {
+                score += 20;
             }
         }
 
-        // RULE 3: High Total Claims
-        if (totalClaims >= 10) {
-            score += 10;
-        }
-
-        // RULE 4: Perfect Timing (LOW WEIGHT)
-        if (approvalRatio >= 0.9 && totalClaims >= 5) {
-            score += 5;
+        // RULE 3: Frequent Rejected Claims
+        if (rejectedClaims >= 3) {
+            score += 25;
         }
 
         // 🔻 FRAUD SCORE DECREASE RULES
-
-        // RULE 5: Good Behavior (Approved Claims)
-        if (approvedClaims >= 2) {
-            score -= 5;
-        }
-
-        // RULE 6: Improved Claim Ratio
-        if (rejectionRatio < 0.5 && totalClaims >= 5) {
+        if (approvedClaims >= 1) {
             score -= 10;
         }
 
-        // RULE 7: Time-Based Decay
-        // If no suspicious activity (rejected claims) in last 3 days
-        const lastThreeDays = new Date();
-        lastThreeDays.setDate(lastThreeDays.getDate() - 3);
-        const recentBadClaims = claims.filter(c => c.status === 'Rejected' && new Date(c.createdAt) > lastThreeDays);
-        
-        if (recentBadClaims.length === 0) {
-            score -= 10;
+        // =========================
+        // 🧠 RULE 8: ML-BASED PREDICTION (AGGRESSIVE FOR TESTING)
+        // 🧠 RULE 8: ML-BASED PREDICTION (BALANCED)
+        // =========================
+        if (totalClaims >= 5) {
+            try {
+                const { execSync } = require('child_process');
+                const path = require('path');
+                const scriptPath = path.join(__dirname, '..', '..', 'ml', 'predict.py');
+                const cmd = `python "${scriptPath}" ${totalClaims} ${approvedClaims} ${rejectedClaims}`;
+                const prediction = execSync(cmd).toString().trim();
+
+                if (prediction === "1") {
+                    score += 30; // Solid weight for ML detection
+                    console.log(`ML System flagged user ${userId} as Potential Risk (+30)`);
+                }
+            } catch (mlErr) {
+                console.error("ML Prediction failed, skipping rule...", mlErr.message);
+            }
         }
 
         // ⚙️ FINAL SCORE HANDLING
         score = Math.max(0, score);
 
-        // 📊 FRAUD STATUS CLASSIFICATION
+        // 📊 FRAUD STATUS CLASSIFICATION (STRICT PER REQUIREMENTS)
         let fraudStatus = "safe";
-        if (score > 60) {
+        if (score >= 80) {
             fraudStatus = "high_risk";
-        } else if (score >= 31) {
+        } else if (score >= 50) {
             fraudStatus = "suspicious";
+        }
+
+        // 🛑 FREEZE SYSTEM (STRICT PER REQUIREMENTS)
+        if (score >= 80) {
+            user.isFrozen = true;
+            const freezeDuration = 3 * 24 * 60 * 60 * 1000; // 3 Days in MS
+            user.freezeUntil = new Date(Date.now() + freezeDuration);
+            console.log(`[FREEZE] User ${userId} has been frozen until ${user.freezeUntil}`);
+        } else if (user.isFrozen && score < 50) {
+            // Optional: Auto-thaw if score drops significantly (Good UX)
+            user.isFrozen = false;
+            user.freezeUntil = null;
         }
 
         // 💾 UPDATE USER

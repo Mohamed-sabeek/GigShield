@@ -6,7 +6,7 @@ const User = require('../models/User');
 // @route   GET api/worker/profile
 router.get('/profile', auth, async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select('-password -fraudScore');
+        const user = await User.findById(req.user.id).select('-password');
         if (!user) return res.status(404).json({ msg: 'Worker not found' });
 
         // Deterministic Tamil Nadu Risk Model (Lowercase to match securely)

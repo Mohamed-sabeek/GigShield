@@ -9,17 +9,41 @@ const Policy = require('../models/Policy');
 // @access  Private
 router.get('/profile', auth, async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select('-password -fraudScore');
+        const user = await User.findById(req.user.id).select('-password');
         if (!user) return res.status(404).json({ msg: 'User not found' });
 
         const activePolicy = await Policy.findOne({ userId: req.user.id, status: 'Active' });
 
+        // Deterministic Tamil Nadu Risk Model
+        const cityRiskMap = {
+            'coimbatore': { riskLevel: 'Low Risk', riskScore: 20, premium: 20 },
+            'chennai': { riskLevel: 'High Flood Risk', riskScore: 75, premium: 40 },
+            'madurai': { riskLevel: 'Medium Heat Risk', riskScore: 45, premium: 30 },
+            'pudukkottai': { riskLevel: 'Moderate Rain Risk', riskScore: 30, premium: 25 },
+            'trichy': { riskLevel: 'Medium Risk', riskScore: 40, premium: 25 },
+            'tirunelveli': { riskLevel: 'Moderate Risk', riskScore: 35, premium: 25 }
+        };
+
+        const locationKey = (user.city || user.district || 'Unknown').toLowerCase();
+        const cityData = cityRiskMap[locationKey] || { riskLevel: 'Safe Zone', riskScore: 10, premium: 15 };
+
+        const recommendedPolicy = {
+            riskLevel: cityData.riskLevel,
+            riskScore: cityData.riskScore,
+            premium: cityData.premium,
+            coverage: 500,
+            planName: 'GigShield Basic'
+        };
+
         res.json({
-            user: {
+            profile: {
                 ...user._doc,
+                lat: user.location?.lat,
+                lon: user.location?.lon,
                 policyActive: !!activePolicy,
                 activePolicy: activePolicy || null
-            }
+            },
+            recommendedPolicy
         });
     } catch (err) {
         console.error(err.message);
@@ -40,12 +64,18 @@ router.put('/profile', auth, async (req, res) => {
             endDate: { $gt: new Date() } 
         });
 
-        if (activePolicy && (district || workingArea || lat || lon)) {
-            return res.status(400).json({ message: "Location cannot be changed during an active policy." });
-        }
-
         let user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        // Allow update if active policy exists ONLY IF:
+        // 1. Current location coordinates are missing/incomplete OR
+        // 2. The district and workingArea are NOT being changed (just syncing GPS)
+        const isLocationMissing = !user.location?.lat || !user.location?.lon;
+        const isAreaUnchanged = (!district || district === user.district) && (!workingArea || workingArea === user.workingArea);
+
+        if (activePolicy && !isLocationMissing && !isAreaUnchanged) {
+            return res.status(400).json({ message: "Regional location cannot be changed during an active policy to prevent fraud. You can only sync GPS for your current area." });
+        }
 
         // Build profile object
         const profileFields = {};

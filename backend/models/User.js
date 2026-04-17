@@ -32,6 +32,14 @@ const UserSchema = new mongoose.Schema({
     lastFraudCheck: {
         type: Date,
         default: Date.now
+    },
+    isFrozen: {
+        type: Boolean,
+        default: false
+    },
+    freezeUntil: {
+        type: Date,
+        default: null
     }
 }, { timestamps: true });
 

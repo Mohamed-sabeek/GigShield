@@ -16,6 +16,14 @@ frontend/.env
 # BUILD FILES
 # =========================
 frontend/dist/
+
+# =========================
+# MACHINE LEARNING
+# =========================
+ml/data.csv
+ml/*.pkl
+ml/__pycache__/
+*.pyc
 frontend/dist-ssr/
 build/
 

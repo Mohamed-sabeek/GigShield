@@ -13,13 +13,19 @@ const ClaimSchema = new mongoose.Schema({
         details: { city: { type: String }, region: { type: String } }
     },
     payoutAmount: { type: Number, default: 0 },
-    status: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
+    status: { type: String, enum: ['Approved', 'Rejected', 'Pending', 'approved', 'rejected'], default: 'Pending' },
     weatherSnapshot: {
         rain: { type: Number },
         temp: { type: Number },
         wind: { type: Number }
     },
+    weatherData: {
+        rain: { type: Number },
+        temperature: { type: Number }
+    },
     autoProcessed: { type: Boolean, default: true },
+    fraudScoreAtTime: { type: Number },
+    reason: { type: String }, // For approval/rejection notes
     type: { type: String } // RAIN, HEATWAVE etc.
 }, { timestamps: true });
 
