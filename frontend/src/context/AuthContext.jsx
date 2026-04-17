@@ -1,6 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import api from '../api';
 
 export const AuthContext = createContext();
 
@@ -12,11 +11,9 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         if (token) {
             localStorage.setItem('token', token);
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             checkUser();
         } else {
             localStorage.removeItem('token');
-            delete axios.defaults.headers.common['Authorization'];
             setUser(null);
             setLoading(false);
         }
@@ -32,7 +29,7 @@ export const AuthProvider = ({ children }) => {
                 }
 
                 // Then fetch FULL profile including location
-                const res = await axios.get(`${API}/api/users/profile`);
+                const res = await api.get(`/api/users/profile`);
                 if (res.data.profile) {
                     setUser(res.data.profile);
                 }
@@ -46,7 +43,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const res = await axios.post(`${API}/api/auth/login`, { email, password });
+            const res = await api.post(`/api/auth/login`, { email, password });
             setToken(res.data.token);
             setUser(res.data.user);
             return res.data.user;
@@ -57,7 +54,7 @@ export const AuthProvider = ({ children }) => {
 
     const signup = async (userData) => {
         try {
-            const res = await axios.post(`${API}/api/auth/signup`, userData);
+            const res = await api.post(`/api/auth/signup`, userData);
             setToken(res.data.token);
             setUser(res.data.user);
             return res.data.user;
@@ -68,7 +65,7 @@ export const AuthProvider = ({ children }) => {
 
     const verifyOTP = async (email, otp) => {
         try {
-            const res = await axios.post(`${API}/api/auth/verify-otp`, { email, otp });
+            const res = await api.post(`/api/auth/verify-otp`, { email, otp });
             setUser(prev => prev ? { ...prev, isVerified: true } : null);
             return res.data;
         } catch (error) {
@@ -78,7 +75,7 @@ export const AuthProvider = ({ children }) => {
 
     const resendOTP = async (email) => {
         try {
-            const res = await axios.post(`${API}/api/auth/resend-otp`, { email });
+            const res = await api.post(`/api/auth/resend-otp`, { email });
             return res.data;
         } catch (error) {
             throw error.response?.data?.msg || 'Failed to resend code';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Search, Filter, ShieldCheck, AlertCircle, 
@@ -7,8 +7,6 @@ import {
     Wind, IndianRupee, Cpu, ArrowUpDown, ChevronDown, 
     Clock, User
 } from 'lucide-react';
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function ClaimsMonitor() {
     const [claims, setClaims] = useState([]);
@@ -20,7 +18,7 @@ export default function ClaimsMonitor() {
     const fetchClaims = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get(`${API}/api/admin/claims`, {
+            const res = await api.get(`/api/admin/claims`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             setClaims(res.data);

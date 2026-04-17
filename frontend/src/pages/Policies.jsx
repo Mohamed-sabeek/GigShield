@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useContext } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { AuthContext } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { Shield, ShieldCheck, CheckCircle, AlertCircle } from 'lucide-react';
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function Policies() {
     const { user } = useContext(AuthContext);
@@ -16,8 +15,8 @@ export default function Policies() {
     const fetchData = async () => {
         try {
             const [profRes, polRes] = await Promise.all([
-                axios.get(`${API}/api/worker/profile`),
-                axios.get(`${API}/api/policy/active`)
+                api.get(`/api/worker/profile`),
+                api.get(`/api/policy/active`)
             ]);
             setProfile(profRes.data.profile);
             setRecommendedPolicy(profRes.data.recommendedPolicy);
@@ -36,7 +35,7 @@ export default function Policies() {
 
     const activatePolicy = async () => {
         try {
-            await axios.post(`${API}/api/policy/create`, recommendedPolicy);
+            await api.post(`/api/policy/create`, recommendedPolicy);
             setNotification({ msg: 'Policy activated successfully!', type: 'success' });
             fetchData();
         } catch (err) {

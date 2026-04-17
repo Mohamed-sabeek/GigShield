@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { AuthContext } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { 
@@ -9,8 +9,6 @@ import {
     Activity, Lock
 } from 'lucide-react';
 import { tnDistricts } from '../utils/districts';
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function Profile() {
     const { logout, setUser } = useContext(AuthContext);
@@ -46,9 +44,7 @@ export default function Profile() {
     const fetchData = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get(`${API}/api/users/profile`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await api.get(`/api/users/profile`);
             const profileData = res.data.profile;
             if (!profileData) throw new Error("No profile data found");
 
@@ -81,9 +77,7 @@ export default function Profile() {
         setSaving(true);
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`${API}/api/users/profile`, formData, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            await api.put(`/api/users/profile`, formData);
             
             setUser(prev => ({ 
                 ...prev, 
@@ -110,9 +104,7 @@ export default function Profile() {
         setSearching(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get(`${API}/api/location/geocode?q=${query}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await api.get(`/api/location/geocode?q=${query}`);
             const { city, lat, lon, state } = res.data;
             setFormData({ ...formData, lat, lon });
             setDetectedLoc(`${city}, ${state || ''} (${lat.toFixed(2)}, ${lon.toFixed(2)})`);
@@ -138,13 +130,9 @@ export default function Profile() {
             if (!editMode) {
                 try {
                     const token = localStorage.getItem('token');
-                    await axios.put(`${API}/api/users/profile`, updatedCoords, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    await api.put(`/api/users/profile`, updatedCoords);
                     showNotification('GPS Synchronized!', 'success');
-                    const profRes = await axios.get(`${API}/api/users/profile`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const profRes = await api.get(`/api/users/profile`);
                     setProfile(profRes.data.profile);
                 } catch (err) {
                     showNotification('GPS sync failed', 'error');

@@ -1,11 +1,9 @@
 import React, { useEffect, useState, useContext } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AuthContext } from '../context/AuthContext';
 import { Shield, Users, FileText, CheckCircle, Search, LogOut, TrendingUp, History, Trash2, AlertTriangle, ShieldCheck } from 'lucide-react';
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function AdminDashboard() {
     const { logout } = useContext(AuthContext);
@@ -21,9 +19,9 @@ export default function AdminDashboard() {
     const fetchData = async () => {
         try {
             const [statsRes, workersRes, configRes] = await Promise.all([
-                axios.get(`${API}/api/admin/dashboard`),
-                axios.get(`${API}/api/admin/workers`),
-                axios.get(`${API}/api/config`)
+                api.get(`/api/admin/dashboard`),
+                api.get(`/api/admin/workers`),
+                api.get(`/api/config`)
             ]);
             setStats(statsRes.data);
             setWorkers(workersRes.data);
@@ -41,7 +39,7 @@ export default function AdminDashboard() {
 
     const toggleMode = async () => {
         try {
-            const res = await axios.post(`${API}/api/config/toggle`);
+            const res = await api.post(`/api/config/toggle`);
             setTestMode(res.data.testMode);
         } catch (err) {
             console.error("Mode toggle failed:", err);

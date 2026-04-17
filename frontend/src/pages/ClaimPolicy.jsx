@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -9,8 +9,6 @@ import {
     ShieldQuestion, ThermometerSun, Wind, ArrowRight,
     Zap, ExternalLink
 } from 'lucide-react';
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function ClaimPolicy() {
     const navigate = useNavigate();
@@ -28,10 +26,10 @@ export default function ClaimPolicy() {
         try {
             const token = localStorage.getItem('token');
             const [claimsRes, policyRes, profileRes, configRes] = await Promise.all([
-                axios.get(`${API}/api/claims/history`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                axios.get(`${API}/api/policy/active`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                axios.get(`${API}/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                axios.get(`${API}/api/config`)
+                api.get(`/api/claims/history`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                api.get(`/api/policy/active`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                api.get(`/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                api.get(`/api/config`)
             ]);
             setClaims(claimsRes.data || []);
             setActivePolicy(policyRes.data && policyRes.data._id ? policyRes.data : null);
@@ -58,7 +56,7 @@ export default function ClaimPolicy() {
         setResult(null);
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.post(`${API}/api/claims/trigger`, { 
+            const res = await api.post(`/api/claims/trigger`, { 
                 disruptionType: selectedDisruption 
             }, {
                 headers: { 'Authorization': `Bearer ${token}` }

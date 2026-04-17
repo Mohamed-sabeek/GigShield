@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { motion } from 'framer-motion';
@@ -8,7 +8,6 @@ import {
     IndianRupee, ShieldCheck, AlertCircle, CloudLightning, User, MapPin, 
     Wind, Waves, CloudRain, Zap, Calendar, ArrowRight, XCircle, Sun, Cloud, Info
 } from 'lucide-react';
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function WorkerDashboard() {
     const { user, logout } = useContext(AuthContext);
@@ -29,7 +28,7 @@ export default function WorkerDashboard() {
     const fetchWeatherData = async (lat, lon) => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get(`${API}/api/weather/current?lat=${lat}&lon=${lon}`, {
+            const res = await api.get(`/api/weather/current?lat=${lat}&lon=${lon}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = res.data;
@@ -126,10 +125,10 @@ export default function WorkerDashboard() {
     const fetchData = async () => {
         try {
             const [profRes, polRes, claimRes, configRes] = await Promise.all([
-                axios.get(`${API}/api/users/profile`),
-                axios.get(`${API}/api/policy/active`),
-                axios.get(`${API}/api/claims/history`),
-                axios.get(`${API}/api/config`)
+                api.get(`/api/users/profile`),
+                api.get(`/api/policy/active`),
+                api.get(`/api/claims/history`),
+                api.get(`/api/config`)
             ]);
             const profileData = profRes.data.profile;
             const activePol = polRes.data && polRes.data._id ? polRes.data : null;
@@ -164,7 +163,7 @@ export default function WorkerDashboard() {
                     const lon = position.coords.longitude;
                     const token = localStorage.getItem('token');
 
-                    await axios.post(`${API}/api/users/update-location`, {
+                    await api.post(`/api/users/update-location`, {
                         latitude: lat,
                         longitude: lon,
                     }, {
@@ -189,7 +188,7 @@ export default function WorkerDashboard() {
 
     const activatePolicy = async () => {
         try {
-            await axios.post(`${API}/api/policy/create`, recommendedPolicy);
+            await api.post(`/api/policy/create`, recommendedPolicy);
             showNotification('Policy activated successfully!', 'success');
             fetchData();
         } catch (err) {
