@@ -116,6 +116,14 @@ export default function VerifyOTP() {
             const newResendTime = Date.now() + 30000;
             localStorage.setItem(`otp_resend_${email}`, newResendTime);
             
+            // RESET the main expiry timer (5 minutes)
+            const newExpiryTime = Date.now() + 300000;
+            localStorage.setItem(`otp_expiry_${email}`, newExpiryTime);
+            
+            // Force a page check/refresh of these values by reloading or just setting state
+            // But since useEffect is running on a timer, it might need help if it doesn't re-read localStorage
+            window.location.reload(); // Simplest way to re-init all timers based on new storage
+            
             setCanResend(false);
             setOtp(['', '', '', '', '', '']);
         } catch (err) {
